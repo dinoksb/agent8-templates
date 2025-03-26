@@ -10,6 +10,11 @@ import { Character } from "./character/Character";
 import { CharacterResource } from "../types/characterResource";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CharacterAction } from "../constants/character.constant.ts";
+import { MaterialType } from "../constants/material.constant";
+import { MetallicMaterial } from "./materials/MetallicMaterial";
+import { ToonMaterial } from "./materials/ToonMaterial";
+import * as THREE from 'three';
+
 
 /**
  * Simple 3D character preview scene
@@ -18,7 +23,24 @@ const PreviewScene: React.FC = () => {
   const [currentAction, setCurrentAction] = useState<CharacterAction>(
     CharacterAction.IDLE
   );
+  const [currentMaterial, setCurrentMaterial] = useState<MaterialType>(MaterialType.DEFAULT);
   const currentActionRef = useRef<CharacterAction>(CharacterAction.IDLE);
+  const characterRef = useRef<THREE.Group>(null);
+
+  // 머테리얼 변경 시 처리 로직
+  const handleMaterialChange = useCallback((materialType: MaterialType) => {
+    // 현재 머테리얼에서 다른 머테리얼로 변경될 때만 처리
+    if (currentMaterial === materialType) return;
+    
+    // 현재 머테리얼 상태 업데이트
+    setCurrentMaterial(materialType);
+    
+    // materialType이 변경될 때마다 characterRef가 확실히 설정되어 있는지 확인
+    if (!characterRef.current) return;
+    
+    // 여기서 MaterialType에 따라 필요한 추가 처리를 수행할 수 있음
+    console.log(`Changing material from ${currentMaterial} to: ${materialType}`);
+  }, [currentMaterial]);
 
   // Update currentActionRef when currentAction state changes
   useEffect(() => {
@@ -110,7 +132,7 @@ const PreviewScene: React.FC = () => {
           <Environment preset="sunset" background={false} />
 
           {/* Character group */}
-          <group scale={2} position={[0, -1.75, 0]}>
+          <group scale={2} position={[0, -1.75, 0]} ref={characterRef}>
             <Character
               characterResource={characterResource}
               currentActionRef={currentActionRef}
@@ -118,6 +140,23 @@ const PreviewScene: React.FC = () => {
             />
           </group>
 
+          {characterRef.current && (
+            <MetallicMaterial 
+              targetObject={characterRef.current} 
+              metalness={0.1} 
+              roughness={0.2} 
+              enabled={currentMaterial === MaterialType.METALLIC}
+            />
+          )}
+
+          {characterRef.current && (
+            <ToonMaterial 
+              targetObject={characterRef.current} 
+              enabled={currentMaterial === MaterialType.TOON}
+              // color="#ffffff"
+            />
+          )}
+          
           {/* Simple camera controls */}
           <OrbitControls enablePan={false} minDistance={3} maxDistance={8} />
         </Canvas>
@@ -126,30 +165,67 @@ const PreviewScene: React.FC = () => {
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: "10px",
+          flexDirection: "column",
+          gap: "20px",
+          width: "800px",
         }}
       >
-        {Object.values(CharacterAction)
-          .filter((action) => typeof action === "string")
-          .map((action) => (
+        {/* Material Controls */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+          }}
+        >
+          {Object.values(MaterialType).map((materialType) => (
             <button
-              key={action}
+              key={materialType}
               style={{
                 padding: "8px 16px",
                 backgroundColor:
-                  currentAction === action ? "#2980b9" : "#3498db",
+                  currentMaterial === materialType ? "#2980b9" : "#3498db",
                 color: "white",
                 border: "none",
                 borderRadius: "4px",
                 cursor: "pointer",
               }}
-              onClick={() => setCurrentAction(action as CharacterAction)}
+              onClick={() => handleMaterialChange(materialType)}
             >
-              {action}
+              {materialType}
             </button>
           ))}
+        </div>
+
+        {/* Animation Controls */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "10px",
+          }}
+        >
+          {Object.values(CharacterAction)
+            .filter((action) => typeof action === "string")
+            .map((action) => (
+              <button
+                key={action}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor:
+                    currentAction === action ? "#2980b9" : "#3498db",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+                onClick={() => setCurrentAction(action as CharacterAction)}
+              >
+                {action}
+              </button>
+            ))}
+        </div>
       </div>
     </div>
   );

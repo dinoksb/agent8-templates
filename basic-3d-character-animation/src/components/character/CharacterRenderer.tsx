@@ -3,6 +3,7 @@ import { AnimationConfigMap } from "../../types/animation";
 import { useAnimationHandler } from "../../hooks/useAnimationHandler";
 import { useCharacterResource } from "../../hooks/useCharacterResource";
 import { CharacterResource } from "../../types/characterResource";
+
 /**
  * CharacterRenderer component Props
  * Simplified interface that accepts CharacterResource
