@@ -11,10 +11,10 @@ import { CharacterResource } from "../types/characterResource";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CharacterAction } from "../constants/character.constant.ts";
 import { MaterialType } from "../constants/material.constant";
-import { MetallicMaterial } from "./materials/MetallicMaterial";
-import { ToonMaterial } from "./materials/ToonMaterial";
-import * as THREE from 'three';
-
+import { MetallicMaterial } from "./materials/metalic/MetallicMaterial.tsx";
+import { ToonMaterial } from "./materials/toon/ToonMaterial.tsx";
+import { PlasticMaterial } from "./materials/plastic/PlasticMaterial.tsx";
+import * as THREE from "three";
 
 /**
  * Simple 3D character preview scene
@@ -23,24 +23,34 @@ const PreviewScene: React.FC = () => {
   const [currentAction, setCurrentAction] = useState<CharacterAction>(
     CharacterAction.IDLE
   );
-  const [currentMaterial, setCurrentMaterial] = useState<MaterialType>(MaterialType.DEFAULT);
+  const [currentMaterial, setCurrentMaterial] = useState<MaterialType>(
+    MaterialType.DEFAULT
+  );
+  const [plasticColor, setPlasticColor] = useState<string>("#3498db"); // 기본 파란색
+  const [plasticRoughness, setPlasticRoughness] = useState<number>(0.3);
+  const [plasticClearcoat, setPlasticClearcoat] = useState<number>(0.5);
   const currentActionRef = useRef<CharacterAction>(CharacterAction.IDLE);
   const characterRef = useRef<THREE.Group>(null);
 
   // 머테리얼 변경 시 처리 로직
-  const handleMaterialChange = useCallback((materialType: MaterialType) => {
-    // 현재 머테리얼에서 다른 머테리얼로 변경될 때만 처리
-    if (currentMaterial === materialType) return;
-    
-    // 현재 머테리얼 상태 업데이트
-    setCurrentMaterial(materialType);
-    
-    // materialType이 변경될 때마다 characterRef가 확실히 설정되어 있는지 확인
-    if (!characterRef.current) return;
-    
-    // 여기서 MaterialType에 따라 필요한 추가 처리를 수행할 수 있음
-    console.log(`Changing material from ${currentMaterial} to: ${materialType}`);
-  }, [currentMaterial]);
+  const handleMaterialChange = useCallback(
+    (materialType: MaterialType) => {
+      // 현재 머테리얼에서 다른 머테리얼로 변경될 때만 처리
+      if (currentMaterial === materialType) return;
+
+      // 현재 머테리얼 상태 업데이트
+      setCurrentMaterial(materialType);
+
+      // materialType이 변경될 때마다 characterRef가 확실히 설정되어 있는지 확인
+      if (!characterRef.current) return;
+
+      // 여기서 MaterialType에 따라 필요한 추가 처리를 수행할 수 있음
+      console.log(
+        `Changing material from ${currentMaterial} to: ${materialType}`
+      );
+    },
+    [currentMaterial]
+  );
 
   // Update currentActionRef when currentAction state changes
   useEffect(() => {
@@ -74,7 +84,7 @@ const PreviewScene: React.FC = () => {
   const characterResource: CharacterResource = useMemo(
     () => ({
       name: "Default Character",
-      url: "https://agent8-games.verse8.io/assets/3d/characters/space-marine.glb",
+      url: "https://agent8-games.verse8.io/assets/3d/characters/commando.glb",
       animations: {
         IDLE: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/idle.glb",
         WALK: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/walk.glb",
@@ -100,6 +110,29 @@ const PreviewScene: React.FC = () => {
     }),
     []
   );
+
+  // 플라스틱 머테리얼 타입 확인 헬퍼 함수
+  const isPlasticMaterial = useCallback((material: MaterialType) => {
+    return [
+      MaterialType.PLASTIC_GLOSSY,
+      MaterialType.PLASTIC_MATTE,
+      MaterialType.PLASTIC_TRANSLUCENT,
+    ].includes(material);
+  }, []);
+
+  // 현재 선택된 플라스틱 머테리얼 타입에 따른 type 값 계산
+  const getCurrentPlasticType = useCallback(() => {
+    switch (currentMaterial) {
+      case MaterialType.PLASTIC_GLOSSY:
+        return "glossy";
+      case MaterialType.PLASTIC_MATTE:
+        return "matte";
+      case MaterialType.PLASTIC_TRANSLUCENT:
+        return "translucent";
+      default:
+        return "glossy";
+    }
+  }, [currentMaterial]);
 
   return (
     <div
@@ -141,22 +174,37 @@ const PreviewScene: React.FC = () => {
           </group>
 
           {characterRef.current && (
-            <MetallicMaterial 
-              targetObject={characterRef.current} 
-              metalness={0.1} 
-              roughness={0.2} 
+            <MetallicMaterial
+              targetObject={characterRef.current}
+              metalness={0.1}
+              roughness={0.2}
               enabled={currentMaterial === MaterialType.METALLIC}
             />
           )}
 
           {characterRef.current && (
-            <ToonMaterial 
-              targetObject={characterRef.current} 
+            <ToonMaterial
+              targetObject={characterRef.current}
               enabled={currentMaterial === MaterialType.TOON}
               // color="#ffffff"
             />
           )}
-          
+
+          {characterRef.current && (
+            <PlasticMaterial
+              targetObject={characterRef.current}
+              roughness={plasticRoughness}
+              color={plasticColor}
+              clearcoat={plasticClearcoat}
+              transparent={currentMaterial === MaterialType.PLASTIC_TRANSLUCENT}
+              opacity={
+                currentMaterial === MaterialType.PLASTIC_TRANSLUCENT ? 0.8 : 1.0
+              }
+              type={getCurrentPlasticType()}
+              enabled={isPlasticMaterial(currentMaterial)}
+            />
+          )}
+
           {/* Simple camera controls */}
           <OrbitControls enablePan={false} minDistance={3} maxDistance={8} />
         </Canvas>
@@ -196,6 +244,93 @@ const PreviewScene: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* 플라스틱 머테리얼 조절 UI */}
+        {isPlasticMaterial(currentMaterial) && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "15px",
+              backgroundColor: "#f0f0f0",
+              padding: "15px",
+              borderRadius: "8px",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px 0", textAlign: "center" }}>
+              플라스틱 머테리얼 조절
+            </h3>
+
+            {/* 색상 선택 */}
+            <div>
+              <label
+                htmlFor="color-picker"
+                style={{ display: "block", marginBottom: "5px" }}
+              >
+                색상:
+              </label>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <input
+                  type="color"
+                  id="color-picker"
+                  value={plasticColor}
+                  onChange={(e) => setPlasticColor(e.target.value)}
+                  style={{ width: "50px", height: "30px" }}
+                />
+                <span>{plasticColor}</span>
+              </div>
+            </div>
+
+            {/* 거칠기 조절 */}
+            <div>
+              <label
+                htmlFor="roughness-slider"
+                style={{ display: "block", marginBottom: "5px" }}
+              >
+                거칠기: {plasticRoughness.toFixed(2)}
+              </label>
+              <input
+                type="range"
+                id="roughness-slider"
+                min="0"
+                max="1"
+                step="0.01"
+                value={plasticRoughness}
+                onChange={(e) =>
+                  setPlasticRoughness(parseFloat(e.target.value))
+                }
+                style={{ width: "100%" }}
+              />
+            </div>
+
+            {/* 코팅 조절 (glossy와 translucent 타입만) */}
+            {(currentMaterial === MaterialType.PLASTIC_GLOSSY ||
+              currentMaterial === MaterialType.PLASTIC_TRANSLUCENT) && (
+              <div>
+                <label
+                  htmlFor="clearcoat-slider"
+                  style={{ display: "block", marginBottom: "5px" }}
+                >
+                  코팅 강도: {plasticClearcoat.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  id="clearcoat-slider"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={plasticClearcoat}
+                  onChange={(e) =>
+                    setPlasticClearcoat(parseFloat(e.target.value))
+                  }
+                  style={{ width: "100%" }}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Animation Controls */}
         <div
