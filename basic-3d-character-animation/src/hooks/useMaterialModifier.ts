@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from "react";
 import * as THREE from "three";
 import { Object3D, Material, Mesh } from "three";
 
-export interface BaseMaterialProps extends THREE.MaterialParameters {
+export interface BaseMaterialProps {
   targetObject: Object3D;
   enabled?: boolean;
 }
@@ -22,9 +22,7 @@ export const useMaterialModifier = (targetObject: Object3D | undefined) => {
     targetObject.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         targetMeshesRef.current.add(child);
-        const material = Array.isArray(child.material)
-          ? child.material[0]
-          : child.material;
+        const material = child.material as Material;
         if (!originalMaterialsRef.current.has(child.uuid)) {
           console.log("find original material", material);
           originalMaterialsRef.current.set(child.uuid, material.clone());
@@ -38,9 +36,7 @@ export const useMaterialModifier = (targetObject: Object3D | undefined) => {
       if (!targetObject) return;
 
       targetMeshesRef.current.forEach((mesh) => {
-        const material = Array.isArray(mesh.material)
-          ? mesh.material[0]
-          : mesh.material;
+        const material = mesh.material as Material;
         if (material) {
           modifier(material);
           material.needsUpdate = true;

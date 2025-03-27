@@ -14,6 +14,8 @@ import { MaterialType } from "../constants/material.constant";
 import { MetallicMaterial } from "./materials/metalic/MetallicMaterial.tsx";
 import { ToonMaterial } from "./materials/toon/ToonMaterial.tsx";
 import { PlasticMaterial } from "./materials/plastic/PlasticMaterial.tsx";
+import { EmissiveMaterial } from "./materials/emissive/EmissiveMaterial.tsx";
+import { CheckerboardMaterial } from "./materials/CheckerboardMaterial.tsx";
 import * as THREE from "three";
 
 /**
@@ -26,9 +28,17 @@ const PreviewScene: React.FC = () => {
   const [currentMaterial, setCurrentMaterial] = useState<MaterialType>(
     MaterialType.DEFAULT
   );
+  const [checkerboardColor1, setCheckerboardColor1] =
+    useState<string>("#ffffff");
+  const [checkerboardColor2, setCheckerboardColor2] =
+    useState<string>("#000000");
+  const [checkerboardScale, setCheckerboardScale] = useState<number>(10);
+
   const [plasticColor, setPlasticColor] = useState<string>("#3498db"); // 기본 파란색
   const [plasticRoughness, setPlasticRoughness] = useState<number>(0.3);
   const [plasticClearcoat, setPlasticClearcoat] = useState<number>(0.5);
+  const [emissiveColor, setEmissiveColor] = useState<string>("#ff0000");
+  const [emissiveIntensity, setEmissiveIntensity] = useState<number>(0.5);
   const currentActionRef = useRef<CharacterAction>(CharacterAction.IDLE);
   const characterRef = useRef<THREE.Group>(null);
 
@@ -165,7 +175,7 @@ const PreviewScene: React.FC = () => {
           <Environment preset="sunset" background={false} />
 
           {/* Character group */}
-          <group scale={2} position={[0, -1.75, 0]} ref={characterRef}>
+          <group scale={2} position={[0.1, -1, 0.1]} ref={characterRef}>
             <Character
               characterResource={characterResource}
               currentActionRef={currentActionRef}
@@ -173,24 +183,31 @@ const PreviewScene: React.FC = () => {
             />
           </group>
 
-          {characterRef.current && (
+          {/* Apply materials */}
+          {characterRef.current && currentMaterial === MaterialType.DEFAULT && (
             <MetallicMaterial
               targetObject={characterRef.current}
-              metalness={0.1}
-              roughness={0.2}
-              enabled={currentMaterial === MaterialType.METALLIC}
+              metalness={0.0}
+              roughness={0.5}
+              enabled={true}
             />
           )}
 
-          {characterRef.current && (
-            <ToonMaterial
-              targetObject={characterRef.current}
-              enabled={currentMaterial === MaterialType.TOON}
-              // color="#ffffff"
-            />
+          {characterRef.current &&
+            currentMaterial === MaterialType.METALLIC && (
+              <MetallicMaterial
+                targetObject={characterRef.current}
+                metalness={0.1}
+                roughness={0.2}
+                enabled={true}
+              />
+            )}
+
+          {characterRef.current && currentMaterial === MaterialType.TOON && (
+            <ToonMaterial targetObject={characterRef.current} enabled={true} />
           )}
 
-          {characterRef.current && (
+          {characterRef.current && isPlasticMaterial(currentMaterial) && (
             <PlasticMaterial
               targetObject={characterRef.current}
               roughness={plasticRoughness}
@@ -201,9 +218,31 @@ const PreviewScene: React.FC = () => {
                 currentMaterial === MaterialType.PLASTIC_TRANSLUCENT ? 0.8 : 1.0
               }
               type={getCurrentPlasticType()}
-              enabled={isPlasticMaterial(currentMaterial)}
+              enabled={true}
             />
           )}
+
+          {characterRef.current &&
+            currentMaterial === MaterialType.EMISSIVE && (
+              <EmissiveMaterial
+                targetObject={characterRef.current}
+                emissiveColor={emissiveColor}
+                emissiveIntensity={emissiveIntensity}
+                preserveOriginal={false}
+                enabled={true}
+              />
+            )}
+
+          {characterRef.current &&
+            currentMaterial === MaterialType.CHECKERBOARD && (
+              <CheckerboardMaterial
+                targetObject={characterRef.current}
+                color1={checkerboardColor1}
+                color2={checkerboardColor2}
+                scale={checkerboardScale}
+                enabled={true}
+              />
+            )}
 
           {/* Simple camera controls */}
           <OrbitControls enablePan={false} minDistance={3} maxDistance={8} />
@@ -329,6 +368,148 @@ const PreviewScene: React.FC = () => {
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {/* 발광 머테리얼 조절 UI */}
+        {currentMaterial === MaterialType.EMISSIVE && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "15px",
+              backgroundColor: "#f0f0f0",
+              padding: "15px",
+              borderRadius: "8px",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px 0", textAlign: "center" }}>
+              발광 머테리얼 조절
+            </h3>
+
+            {/* 발광 색상 선택 */}
+            <div>
+              <label
+                htmlFor="emissive-color-picker"
+                style={{ display: "block", marginBottom: "5px" }}
+              >
+                발광 색상:
+              </label>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <input
+                  type="color"
+                  id="emissive-color-picker"
+                  value={emissiveColor}
+                  onChange={(e) => setEmissiveColor(e.target.value)}
+                  style={{ width: "50px", height: "30px" }}
+                />
+                <span>{emissiveColor}</span>
+              </div>
+            </div>
+
+            {/* 발광 강도 조절 */}
+            <div>
+              <label
+                htmlFor="emissive-intensity-slider"
+                style={{ display: "block", marginBottom: "5px" }}
+              >
+                발광 강도: {emissiveIntensity.toFixed(2)}
+              </label>
+              <input
+                type="range"
+                id="emissive-intensity-slider"
+                min="0"
+                max="2"
+                step="0.01"
+                value={emissiveIntensity}
+                onChange={(e) =>
+                  setEmissiveIntensity(parseFloat(e.target.value))
+                }
+                style={{ width: "100%" }}
+              />
+            </div>
+          </div>
+        )}
+
+        {currentMaterial === MaterialType.CHECKERBOARD && (
+          <div
+            style={{
+              padding: "15px",
+              backgroundColor: "#f5f5f5",
+              borderRadius: "8px",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px 0", textAlign: "center" }}>
+              체커보드 머테리얼 조절
+            </h3>
+
+            {/* 색상 1 선택 */}
+            <div>
+              <label
+                htmlFor="checker-color1-picker"
+                style={{ display: "block", marginBottom: "5px" }}
+              >
+                색상 1:
+              </label>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <input
+                  type="color"
+                  id="checker-color1-picker"
+                  value={checkerboardColor1}
+                  onChange={(e) => setCheckerboardColor1(e.target.value)}
+                  style={{ width: "50px", height: "30px" }}
+                />
+                <span>{checkerboardColor1}</span>
+              </div>
+            </div>
+
+            {/* 색상 2 선택 */}
+            <div>
+              <label
+                htmlFor="checker-color2-picker"
+                style={{ display: "block", marginBottom: "5px" }}
+              >
+                색상 2:
+              </label>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <input
+                  type="color"
+                  id="checker-color2-picker"
+                  value={checkerboardColor2}
+                  onChange={(e) => setCheckerboardColor2(e.target.value)}
+                  style={{ width: "50px", height: "30px" }}
+                />
+                <span>{checkerboardColor2}</span>
+              </div>
+            </div>
+
+            {/* 스케일 조절 */}
+            <div>
+              <label
+                htmlFor="checker-scale-slider"
+                style={{ display: "block", marginBottom: "5px" }}
+              >
+                패턴 크기: {checkerboardScale.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                id="checker-scale-slider"
+                min="0.1"
+                max="3"
+                step="0.1"
+                value={checkerboardScale}
+                onChange={(e) =>
+                  setCheckerboardScale(parseFloat(e.target.value))
+                }
+                style={{ width: "100%" }}
+              />
+            </div>
           </div>
         )}
 
