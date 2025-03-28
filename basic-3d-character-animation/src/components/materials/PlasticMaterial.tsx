@@ -3,7 +3,7 @@ import { MeshStandardMaterial, MeshPhysicalMaterial, Color } from "three";
 import {
   BaseMaterialProps,
   useMaterialModifier,
-} from "../../../hooks/useMaterialModifier";
+} from "../../hooks/useMaterialModifier";
 
 interface PlasticMaterialProps extends BaseMaterialProps {
   color?: string;

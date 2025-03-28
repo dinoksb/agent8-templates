@@ -11,10 +11,10 @@ import { CharacterResource } from "../types/characterResource";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CharacterAction } from "../constants/character.constant.ts";
 import { MaterialType } from "../constants/material.constant";
-import { MetallicMaterial } from "./materials/metalic/MetallicMaterial.tsx";
-import { ToonMaterial } from "./materials/toon/ToonMaterial.tsx";
-import { PlasticMaterial } from "./materials/plastic/PlasticMaterial.tsx";
-import { EmissiveMaterial } from "./materials/emissive/EmissiveMaterial.tsx";
+import { MetallicMaterial } from "./materials/MetallicMaterial.tsx";
+import { ToonMaterial } from "./materials/ToonMaterial.tsx";
+import { PlasticMaterial } from "./materials/PlasticMaterial.tsx";
+import { EmissiveMaterial } from "./materials/EmissiveMaterial.tsx";
 import { CheckerboardMaterial } from "./materials/CheckerboardMaterial.tsx";
 import * as THREE from "three";
 
@@ -94,7 +94,7 @@ const PreviewScene: React.FC = () => {
   const characterResource: CharacterResource = useMemo(
     () => ({
       name: "Default Character",
-      url: "https://agent8-games.verse8.io/assets/3d/characters/commando.glb",
+      url: "https://agent8-games.verse8.io/assets/3d/characters/human/commando.glb",
       animations: {
         IDLE: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/idle.glb",
         WALK: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/walk.glb",

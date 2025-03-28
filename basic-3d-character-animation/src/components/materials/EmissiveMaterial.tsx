@@ -3,7 +3,7 @@ import { MeshStandardMaterial, Color } from "three";
 import {
   BaseMaterialProps,
   useMaterialModifier,
-} from "../../../hooks/useMaterialModifier";
+} from "../../hooks/useMaterialModifier";
 
 interface EmissiveMaterialProps extends BaseMaterialProps {
   emissiveColor?: string;

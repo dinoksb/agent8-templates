@@ -9,7 +9,7 @@ import {
   TextureLoader,
   NearestFilter,
 } from "three";
-import { useMaterialModifier } from "../../../hooks/useMaterialModifier";
+import { useMaterialModifier } from "../../hooks/useMaterialModifier";
 
 interface ToonMaterialProps {
   targetObject: Object3D;
