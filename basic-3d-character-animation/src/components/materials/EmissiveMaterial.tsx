@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { MeshStandardMaterial, Color } from "three";
+import { useFrame } from "@react-three/fiber";
 import {
   BaseMaterialProps,
   useMaterialModifier,
@@ -9,6 +10,8 @@ interface EmissiveMaterialProps extends BaseMaterialProps {
   emissiveColor?: string;
   emissiveIntensity?: number;
   preserveOriginal?: boolean;
+  pulseEnabled?: boolean;
+  pulseSpeed?: number;
 }
 
 export const EmissiveMaterial: React.FC<EmissiveMaterialProps> = ({
@@ -16,10 +19,15 @@ export const EmissiveMaterial: React.FC<EmissiveMaterialProps> = ({
   emissiveColor = "#ffffff",
   emissiveIntensity = 1.0,
   preserveOriginal = true,
+  pulseEnabled = false,
+  pulseSpeed = 1.0,
   enabled = true,
 }) => {
   const { modifyMaterial, applyMaterial, resetMaterials } =
     useMaterialModifier(targetObject);
+
+  // 발광 머테리얼 참조 변수
+  const materialRef = useRef<MeshStandardMaterial | null>(null);
 
   useEffect(() => {
     if (enabled) {
@@ -49,8 +57,11 @@ export const EmissiveMaterial: React.FC<EmissiveMaterialProps> = ({
         const emissiveMaterial = new MeshStandardMaterial({
           ...baseMaterial,
           emissive: new Color(emissiveColor),
-          emissiveIntensity: emissiveIntensity,
+          emissiveIntensity: pulseEnabled ? 0 : emissiveIntensity,
         });
+
+        // 참조 저장
+        materialRef.current = emissiveMaterial;
 
         // 단일 머테리얼로 적용
         applyMaterial(emissiveMaterial);
@@ -68,10 +79,23 @@ export const EmissiveMaterial: React.FC<EmissiveMaterialProps> = ({
     emissiveColor,
     emissiveIntensity,
     preserveOriginal,
+    pulseEnabled,
     modifyMaterial,
     applyMaterial,
     resetMaterials,
   ]);
+
+  // 애니메이션 프레임마다 발광 강도 업데이트
+  useFrame((state) => {
+    if (enabled && pulseEnabled && materialRef.current) {
+      // sin 함수를 사용하여 0에서 emissiveIntensity까지 부드럽게 변화
+      const time = state.clock.elapsedTime * pulseSpeed;
+      const newIntensity = Math.abs(Math.sin(time)) * emissiveIntensity;
+
+      // 머테리얼의 발광 강도 업데이트
+      materialRef.current.emissiveIntensity = newIntensity;
+    }
+  });
 
   return null;
 };

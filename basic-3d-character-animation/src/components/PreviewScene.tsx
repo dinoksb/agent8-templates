@@ -15,8 +15,9 @@ import { MetallicMaterial } from "./materials/MetallicMaterial.tsx";
 import { ToonMaterial } from "./materials/ToonMaterial.tsx";
 import { PlasticMaterial } from "./materials/PlasticMaterial.tsx";
 import { EmissiveMaterial } from "./materials/EmissiveMaterial.tsx";
-import { CheckerboardMaterial } from "./materials/CheckerboardMaterial.tsx";
+import { CheckerboardMaterial } from "./materials/checkerboard/CheckerboardMaterial.tsx";
 import * as THREE from "three";
+import { OutlineMaterial } from "./materials/OutlineMaterial.tsx";
 
 /**
  * Simple 3D character preview scene
@@ -32,7 +33,7 @@ const PreviewScene: React.FC = () => {
     useState<string>("#ffffff");
   const [checkerboardColor2, setCheckerboardColor2] =
     useState<string>("#000000");
-  const [checkerboardScale, setCheckerboardScale] = useState<number>(10);
+  const [checkerboardScale, setCheckerboardScale] = useState<number>(1);
 
   const [plasticColor, setPlasticColor] = useState<string>("#3498db"); // 기본 파란색
   const [plasticRoughness, setPlasticRoughness] = useState<number>(0.3);
@@ -41,6 +42,13 @@ const PreviewScene: React.FC = () => {
   const [emissiveIntensity, setEmissiveIntensity] = useState<number>(0.5);
   const currentActionRef = useRef<CharacterAction>(CharacterAction.IDLE);
   const characterRef = useRef<THREE.Group>(null);
+
+  const [outlineEnabled, setOutlineEnabled] = useState<boolean>(false);
+  const [outlineColor, setOutlineColor] = useState<string>("#00ff00");
+  const [outlineThickness, setOutlineThickness] = useState<number>(1.0);
+  const [outlineGlow, setOutlineGlow] = useState<number>(0.0);
+  const [outlineStrength, setOutlineStrength] = useState<number>(3.0);
+  const [outlinePulse, setOutlinePulse] = useState<number>(0);
 
   // 머테리얼 변경 시 처리 로직
   const handleMaterialChange = useCallback(
@@ -244,6 +252,19 @@ const PreviewScene: React.FC = () => {
               />
             )}
 
+          {characterRef.current && outlineEnabled && (
+            <OutlineMaterial
+              targetObject={characterRef.current}
+              enabled={true}
+              edgeStrength={outlineStrength}
+              edgeGlow={outlineGlow}
+              edgeThickness={outlineThickness}
+              pulsePeriod={outlinePulse}
+              visibleEdgeColor={outlineColor}
+              hiddenEdgeColor={outlineColor}
+            />
+          )}
+
           {/* Simple camera controls */}
           <OrbitControls enablePan={false} minDistance={3} maxDistance={8} />
         </Canvas>
@@ -283,7 +304,6 @@ const PreviewScene: React.FC = () => {
             </button>
           ))}
         </div>
-
         {/* 플라스틱 머테리얼 조절 UI */}
         {isPlasticMaterial(currentMaterial) && (
           <div
@@ -370,7 +390,6 @@ const PreviewScene: React.FC = () => {
             )}
           </div>
         )}
-
         {/* 발광 머테리얼 조절 UI */}
         {currentMaterial === MaterialType.EMISSIVE && (
           <div
@@ -432,7 +451,6 @@ const PreviewScene: React.FC = () => {
             </div>
           </div>
         )}
-
         {currentMaterial === MaterialType.CHECKERBOARD && (
           <div
             style={{
@@ -512,7 +530,6 @@ const PreviewScene: React.FC = () => {
             </div>
           </div>
         )}
-
         {/* Animation Controls */}
         <div
           style={{
@@ -541,6 +558,133 @@ const PreviewScene: React.FC = () => {
                 {action}
               </button>
             ))}
+        </div>
+        // UI 컨트롤 추가 (Material Controls 섹션 위나 아래에 배치)
+        <div
+          style={{
+            padding: "15px",
+            backgroundColor: "#f0f0f0",
+            borderRadius: "8px",
+            marginBottom: "20px",
+          }}
+        >
+          <h3 style={{ margin: "0 0 10px 0", textAlign: "center" }}>
+            아웃라인 효과 조절
+          </h3>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "10px",
+            }}
+          >
+            <input
+              type="checkbox"
+              id="outline-toggle"
+              checked={outlineEnabled}
+              onChange={(e) => setOutlineEnabled(e.target.checked)}
+            />
+            <label htmlFor="outline-toggle">아웃라인 활성화</label>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "10px",
+            }}
+          >
+            <label htmlFor="outline-color" style={{ minWidth: "80px" }}>
+              아웃라인 색상:
+            </label>
+            <input
+              type="color"
+              id="outline-color"
+              value={outlineColor}
+              onChange={(e) => setOutlineColor(e.target.value)}
+              style={{ width: "50px", height: "30px" }}
+            />
+            <span>{outlineColor}</span>
+          </div>
+
+          <div>
+            <label
+              htmlFor="outline-strength"
+              style={{ display: "block", marginBottom: "5px" }}
+            >
+              아웃라인 강도: {outlineStrength.toFixed(1)}
+            </label>
+            <input
+              type="range"
+              id="outline-strength"
+              min="0.1"
+              max="10"
+              step="0.1"
+              value={outlineStrength}
+              onChange={(e) => setOutlineStrength(parseFloat(e.target.value))}
+              style={{ width: "100%" }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="outline-thickness"
+              style={{ display: "block", marginBottom: "5px" }}
+            >
+              아웃라인 두께: {outlineThickness.toFixed(1)}
+            </label>
+            <input
+              type="range"
+              id="outline-thickness"
+              min="1"
+              max="4"
+              step="0.1"
+              value={outlineThickness}
+              onChange={(e) => setOutlineThickness(parseFloat(e.target.value))}
+              style={{ width: "100%" }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="outline-glow"
+              style={{ display: "block", marginBottom: "5px" }}
+            >
+              아웃라인 발광: {outlineGlow.toFixed(2)}
+            </label>
+            <input
+              type="range"
+              id="outline-glow"
+              min="0"
+              max="1"
+              step="0.01"
+              value={outlineGlow}
+              onChange={(e) => setOutlineGlow(parseFloat(e.target.value))}
+              style={{ width: "100%" }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="outline-pulse"
+              style={{ display: "block", marginBottom: "5px" }}
+            >
+              펄스 주기: {outlinePulse.toFixed(1)}
+            </label>
+            <input
+              type="range"
+              id="outline-pulse"
+              min="0"
+              max="5"
+              step="0.1"
+              value={outlinePulse}
+              onChange={(e) => setOutlinePulse(parseFloat(e.target.value))}
+              style={{ width: "100%" }}
+            />
+          </div>
         </div>
       </div>
     </div>
