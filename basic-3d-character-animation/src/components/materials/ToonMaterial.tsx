@@ -6,19 +6,20 @@ import {
   Texture,
   Material,
   Vector2,
-  TextureLoader,
   NearestFilter,
+  LinearFilter,
+  RepeatWrapping,
+  DataTexture,
+  RedFormat,
 } from "three";
 import { useMaterialModifier } from "../../hooks/useMaterialModifier";
 
+// 핵심 파라미터만 포함하는 간소화된 인터페이스
 interface ToonMaterialProps {
   targetObject: Object3D;
   enabled?: boolean;
   color?: string;
-  steps?: number; // 톤 단계 수 (2-5)
-  emissive?: string; // 발광 색상
-  specular?: string; // 하이라이트 색상
-  shininess?: number; // 광택도 (MeshToonMaterial이 지원하는 경우)
+  steps?: number; // 톤 단계 수 (2-8)
 }
 
 // 텍스처 속성을 가진 머테리얼 인터페이스
@@ -26,98 +27,110 @@ interface MaterialWithTextureProps extends Material {
   map?: Texture;
   normalMap?: Texture;
   normalScale?: Vector2;
+  color?: Color;
 }
 
 export const ToonMaterial: React.FC<ToonMaterialProps> = ({
   targetObject,
   enabled = true,
-  color = "#ffffff",
-  steps = 4,
-  emissive = "#000000",
-  specular = "#111111",
-  shininess = 30,
+  color = "#ffffff", // 기본 색상을 완전한 흰색으로 유지
+  steps = 4, // 기본 단계 수
 }) => {
+  // 내부 상수로 고정된 파라미터들
+  const PRESERVE_TEXTURES = true;
+  
   const { modifyMaterial, applyMaterial, resetMaterials } =
     useMaterialModifier(targetObject);
 
   // 톤을 위한 그라디언트 맵 생성 (단계적 음영을 위함)
+  // useMemo를 사용하여 불필요한 재계산 방지
   const gradientMap = useMemo(() => {
-    // 단계 수에 따라 적절한 크기의 텍스처 생성
-    const size = Math.max(2, Math.min(steps, 5));
-
-    // 캔버스를 사용하여 그라디언트 맵 생성
-    const canvas = document.createElement("canvas");
-    canvas.width = 256;
-    canvas.height = 1;
-
-    const context = canvas.getContext("2d");
-    if (!context) return null;
-
-    // 그라디언트 생성
-    const gradient = context.createLinearGradient(0, 0, 256, 0);
-
-    if (size === 2) {
-      // 2단계: 단순한 카툰 효과 (그림자와 밝은 부분)
-      gradient.addColorStop(0.0, "#000000");
-      gradient.addColorStop(0.5, "#ffffff");
-    } else if (size === 3) {
-      // 3단계: 그림자, 중간톤, 하이라이트
-      gradient.addColorStop(0.0, "#000000");
-      gradient.addColorStop(0.4, "#666666");
-      gradient.addColorStop(0.7, "#ffffff");
-    } else if (size === 4) {
-      // 4단계: 더 세분화된 톤 (일반적으로 많이 사용)
-      gradient.addColorStop(0.0, "#000000");
-      gradient.addColorStop(0.33, "#444444");
-      gradient.addColorStop(0.67, "#aaaaaa");
-      gradient.addColorStop(1.0, "#ffffff");
-    } else {
-      // 5단계: 세밀한 툰 셰이딩
-      gradient.addColorStop(0.0, "#000000");
-      gradient.addColorStop(0.2, "#333333");
-      gradient.addColorStop(0.4, "#777777");
-      gradient.addColorStop(0.6, "#aaaaaa");
-      gradient.addColorStop(0.8, "#ffffff");
+    // 단계 수에 따라 데이터 생성 (최소 2, 최대 8단계)
+    const numSteps = Math.max(2, Math.min(steps, 8));
+    
+    // 그라디언트 맵을 위한 색상 배열 생성
+    const colors = new Uint8Array(numSteps);
+    
+    // 음영값 계산 (어두운 부분을 밝게 시작하기 위해 베이스값 조정)
+    const baseValue = 100; // 가장 어두운 부분의 기본값 (0-255) - 더 밝게 조정
+    
+    for (let i = 0; i < numSteps; i++) {
+      // 밝기 값 계산 (어두운 부분을 더 밝게 조정)
+      // i=0일 때 baseValue, i=numSteps-1일 때 255가 되도록 계산
+      colors[i] = Math.round(baseValue + (255 - baseValue) * (i / (numSteps - 1)));
     }
-
-    // 그라디언트 그리기
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, 256, 1);
-
-    // 텍스처 생성
-    const texture = new TextureLoader().load(canvas.toDataURL());
-    texture.minFilter = NearestFilter; // 가장 가까운 픽셀 필터링 (선명한 경계)
-    texture.magFilter = NearestFilter; // 단계적 경계를 위해 중요
-    texture.generateMipmaps = false; // 미맵 비활성화
-
+    
+    // DataTexture 생성
+    const texture = new DataTexture(colors, colors.length, 1, RedFormat);
+    
+    // 필요한 속성 설정
+    texture.needsUpdate = true; 
+    texture.minFilter = NearestFilter;
+    texture.magFilter = LinearFilter;
+    texture.generateMipmaps = false;
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    
     return texture;
   }, [steps]);
+
+  // 기존 색상에서 밝은 색상으로 변환하는 함수
+  const getBrightenedColor = (originalColor: string): Color => {
+    const color = new Color(originalColor);
+    
+    // HSL로 변환하여 밝기(L) 조정
+    const hsl = {h: 0, s: 0, l: 0};
+    color.getHSL(hsl);
+    
+    // 밝기 증가 (최대 1.0)
+    hsl.l = Math.min(1.0, hsl.l * 1.5);
+    
+    // 업데이트된 HSL 값 적용
+    color.setHSL(hsl.h, hsl.s, hsl.l);
+    
+    return color;
+  };
 
   useEffect(() => {
     if (enabled && gradientMap) {
       modifyMaterial((material) => {
         const baseMaterial = material as MaterialWithTextureProps;
+        
+        // 원본 색상 추출
+        const baseColor = baseMaterial.color 
+          ? baseMaterial.color.clone() 
+          : new Color(color);
+        
+        // 색상을 더 밝게 조정
+        const brightenedColor = getBrightenedColor(baseColor.getStyle());
 
         // MeshToonMaterial 생성
         const toonMaterial = new MeshToonMaterial({
-          color: new Color(color),
-          emissive: new Color(emissive),
+          color: brightenedColor,
           gradientMap: gradientMap,
+          
           // 기존 텍스처 유지
-          map: baseMaterial.map,
-          normalMap: baseMaterial.normalMap,
-          normalScale: baseMaterial.normalScale
-            ? baseMaterial.normalScale.clone()
-            : undefined,
+          map: PRESERVE_TEXTURES && baseMaterial.map ? baseMaterial.map : null,
+          normalMap: PRESERVE_TEXTURES && baseMaterial.normalMap ? baseMaterial.normalMap : null,
+          normalScale: PRESERVE_TEXTURES && baseMaterial.normalScale 
+            ? baseMaterial.normalScale.clone() 
+            : new Vector2(1, 1),
+          
           // 기타 속성
           transparent: material.transparent,
           opacity: material.opacity,
           side: material.side,
+          // 추가 속성 보존
+          depthWrite: material.depthWrite,
+          depthTest: material.depthTest,
         });
 
         // 머테리얼 적용
         applyMaterial(toonMaterial);
       });
+    } else if (!enabled) {
+      // 비활성화 시 원래 머테리얼로 되돌림
+      resetMaterials();
     }
 
     // 컴포넌트 언마운트 시 원래 머테리얼로 복원
@@ -129,9 +142,7 @@ export const ToonMaterial: React.FC<ToonMaterialProps> = ({
   }, [
     enabled,
     color,
-    emissive,
-    specular,
-    shininess,
+    steps,
     gradientMap,
     modifyMaterial,
     applyMaterial,
