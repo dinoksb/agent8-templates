@@ -12,7 +12,7 @@ export const World: React.FC = () => {
   const characterResource: CharacterResource = useMemo(
     () => ({
       name: "Default Character",
-      url: "https://agent8-games.verse8.io/assets/3d/characters/space-marine.glb",
+      url: "https://agent8-games.verse8.io/assets/3d/characters/human/space-marine.glb",
       animations: {
         IDLE: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/idle.glb",
         WALK: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/walk.glb",

@@ -10,4 +10,5 @@ export const keyboardMap: KeyboardControlsEntry[] = [
   { name: "action1", keys: ["1", "z", "Z"] }, // 펀치
   { name: "action2", keys: ["2", "x", "X"] }, // 히트
   { name: "action3", keys: ["3", "c", "C"] }, // 죽기
+  { name: "toggleGlitch", keys: ["g", "G"] }, // 글리치 효과 토글
 ];
