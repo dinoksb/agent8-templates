@@ -219,7 +219,6 @@ const PreviewScene: React.FC = () => {
               steps={4}
             />
           )}
-          )}
 
           {characterRef.current && isPlasticMaterial(currentMaterial) && (
             <PlasticMaterial
