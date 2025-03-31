@@ -151,6 +151,7 @@ const PreviewScene: React.FC = () => {
     // 트레일 생성을 위한 훅 - 위치만 전달
     const { createTrail } = useTrailEffect(null, {
       position: boneLocalPosition,
+      color: "#00ffff", // 밝은 청록색 트레일
     });
 
     // 매 프레임마다 본 위치 계산

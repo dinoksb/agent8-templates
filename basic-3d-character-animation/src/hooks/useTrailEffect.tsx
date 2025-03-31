@@ -20,15 +20,16 @@ export type TrailStyle = {
 export type TrailOptions = {
   /** Position vector passed from outside */
   position?: THREE.Vector3 | null;
+  /** Custom trail color (required) */
+  color: string;
 };
 
 /**
  * Default trail style
  */
-export const DEFAULT_TRAIL_STYLE: TrailStyle = {
-  color: "#00ffff", // Bright cyan
-  width: 1.5,
-  length: 2.5,
+export const DEFAULT_TRAIL_STYLE: Omit<TrailStyle, "color"> = {
+  width: 3.5,
+  length: 3.5,
   decay: 1.0,
   attenuation: (width) => width,
 };
@@ -91,9 +92,9 @@ export const TrailEffect: React.FC<{
  */
 export function useTrailEffect(
   _: React.RefObject<THREE.Group> | null, // Model reference is not used (kept for backward compatibility)
-  options: TrailOptions = {}
+  options: TrailOptions
 ) {
-  const { position = null } = options;
+  const { position = null, color } = options;
 
   /**
    * Create trail
@@ -101,11 +102,17 @@ export function useTrailEffect(
   const createTrail = () => {
     // Create trail only if position is provided
     if (position) {
+      // Combine default style with required color
+      const trailStyle: TrailStyle = {
+        ...DEFAULT_TRAIL_STYLE,
+        color,
+      };
+
       return (
         <TrailEffect
           key="trail-position"
           position={position}
-          style={DEFAULT_TRAIL_STYLE}
+          style={trailStyle}
         />
       );
     }
@@ -128,6 +135,7 @@ export function useTrailEffect(
  * // Call useTrailEffect (pass null as first parameter since it's no longer used)
  * const { createTrail } = useTrailEffect(null, {
  *   position: position, // Pass THREE.Vector3 type position
+ *   color: "#00ffff", // Required: trail color (cyan)
  * });
  *
  * // Update position each frame (e.g., inside useFrame)
@@ -164,6 +172,7 @@ export function useTrailEffect(
  * // Call useTrailEffect
  * const { createTrail } = useTrailEffect(null, {
  *   position: boneLocalPosition,
+ *   color: "#ff00ff", // Required: trail color (magenta)
  * });
  *
  * // Track bone position
