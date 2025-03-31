@@ -5,10 +5,10 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { Character } from "./character/Character";
 import { CharacterResource } from "../types/characterResource";
-import { Environment, OrbitControls, Trail } from "@react-three/drei";
+import { Environment, OrbitControls } from "@react-three/drei";
 import { CharacterAction } from "../constants/character.constant.ts";
 import {
   EffectComposer,
@@ -25,7 +25,8 @@ import {
 } from "@react-three/postprocessing";
 import { BlendFunction, GlitchMode } from "postprocessing";
 import * as THREE from "three";
-import { Vector2, Vector3 } from "three";
+import { Vector2 } from "three";
+import { useBoneTrail, DEFAULT_TRAIL_STYLES } from "../hooks/useBoneTrail";
 
 /**
  * Simple 3D character preview scene
@@ -135,243 +136,34 @@ const PreviewScene: React.FC = () => {
   // 캐릭터 그룹에 대한 참조
   const characterGroupRef = useRef(null);
 
-  // Trail 관련 컴포넌트
-  const CharacterWithTrail = ({ children }) => {
+  // Character 컴포넌트와 Trail을 통합한 컴포넌트
+  const CharacterWithTrails = ({
+    characterResource,
+    currentActionRef,
+    onAnimationComplete,
+  }) => {
     const characterRef = useRef<THREE.Group>(null);
-    const [bones, setBones] = useState(null);
 
-    // Find skeleton and bones after character loads
-    useEffect(() => {
-      if (!characterRef.current) return;
-
-      const findSkeleton = () => {
-        let skeleton = null;
-
-        // 모든 bone들의 이름을 로그에 기록 (디버깅 용도)
-        console.log("Character group contents:");
-        characterRef.current.traverse((obj) => {
-          console.log(`Object: ${obj.name}, Type: ${obj.type}`);
-        });
-
-        characterRef.current.traverse((object) => {
-          if (
-            object.type === "SkinnedMesh" &&
-            (object as THREE.SkinnedMesh).skeleton
-          ) {
-            skeleton = (object as THREE.SkinnedMesh).skeleton;
-
-            // 본 이름 출력
-            console.log(
-              "All bones in skeleton:",
-              skeleton.bones.map((bone) => bone.name).join(", ")
-            );
-          }
-        });
-        return skeleton;
-      };
-
-      // Try to find the skeleton for a few frames as it might not be available immediately
-      const checkInterval = setInterval(() => {
-        const skeleton = findSkeleton();
-        if (skeleton) {
-          console.log("Found skeleton with bones:", skeleton.bones.length);
-
-          // Find bones by name patterns - expanded patterns to catch more variations
-          const findBoneByPattern = (patterns) => {
-            for (const pattern of patterns) {
-              const bone = skeleton.bones.find((b) =>
-                b.name.toLowerCase().includes(pattern.toLowerCase())
-              );
-              if (bone) {
-                console.log(
-                  `Found bone with pattern '${pattern}': ${bone.name}`
-                );
-                return bone;
-              }
-            }
-            return null;
-          };
-
-          // Look for specific bones - 본 이름 패턴 확장
-          const foundBones = {
-            head: findBoneByPattern([
-              "head",
-              "neck",
-              "mixamorigHead",
-              "mixamorigNeck",
-              "spine2",
-              "face",
-              "skull",
-              "Neck",
-            ]),
-            leftHand: findBoneByPattern([
-              "lefthand",
-              "hand_l",
-              "handleft",
-              "mixamorigLeftHand",
-              "left_hand",
-              "handl",
-              "LeftHand",
-              "Hand_L",
-              "Palm_L",
-              "Lwrist",
-            ]),
-            rightHand: findBoneByPattern([
-              "righthand",
-              "hand_r",
-              "handright",
-              "mixamorigRightHand",
-              "right_hand",
-              "handr",
-              "RightHand",
-              "Hand_R",
-              "Palm_R",
-              "Rwrist",
-            ]),
-            leftFoot: findBoneByPattern([
-              "leftfoot",
-              "foot_l",
-              "footleft",
-              "mixamorigLeftFoot",
-              "left_foot",
-              "footl",
-              "LeftFoot",
-              "Foot_L",
-              "lAnkle",
-            ]),
-            rightFoot: findBoneByPattern([
-              "rightfoot",
-              "foot_r",
-              "footright",
-              "mixamorigRightFoot",
-              "right_foot",
-              "footr",
-              "RightFoot",
-              "Foot_R",
-              "rAnkle",
-            ]),
-          };
-
-          setBones(foundBones);
-          clearInterval(checkInterval);
-        }
-      }, 100);
-
-      // Clean up interval
-      return () => clearInterval(checkInterval);
-    }, []);
-
-    // 본 위치를 트랙킹하는 컴포넌트
-    const BoneTracker = ({
-      bone,
-      color,
-      width,
-      length,
-      decay,
-      attenuation,
-    }) => {
-      const trailPointRef = useRef<THREE.Mesh>(null);
-
-      // 본 위치 트래킹
-      useFrame(() => {
-        if (bone && trailPointRef.current && characterRef.current) {
-          // 본과 관련된 모든 매트릭스를 업데이트
-          bone.updateWorldMatrix(true, false);
-
-          // 본의 월드 위치를 구함
-          const worldPos = new Vector3();
-          bone.getWorldPosition(worldPos);
-
-          // 캐릭터 그룹의 월드 투 로컬 변환 매트릭스
-          // 참고: 캐릭터 그룹은 scale={2} position={[0, -1.75, 0]} 변환이 적용됨
-          // 이 변환의 역을 적용하여 본의 위치를 캐릭터 그룹 로컬 좌표계로 변환
-          const groupWorldMatrix = new THREE.Matrix4();
-          characterGroupRef.current.updateWorldMatrix(true, false);
-          groupWorldMatrix.copy(characterGroupRef.current.matrixWorld).invert();
-
-          // 캐릭터 그룹 기준의 로컬 위치로 변환
-          const localPos = worldPos.clone().applyMatrix4(groupWorldMatrix);
-
-          // 트레일 포인트 위치 업데이트
-          trailPointRef.current.position.copy(localPos);
-        }
-      });
-
-      return (
-        <Trail
-          width={width}
-          color={color}
-          length={length}
-          decay={decay}
-          attenuation={attenuation || ((width) => width * 0.5)}
-        >
-          <mesh ref={trailPointRef} visible={false}>
-            <sphereGeometry args={[0.05, 8, 8]} />
-            <meshBasicMaterial color={color} />
-          </mesh>
-        </Trail>
-      );
-    };
+    // useBoneTrail 훅을 사용하여 본 트레일 관리
+    const { isLoading, createMultipleTrails } = useBoneTrail(characterRef, {
+      characterGroupRef,
+      debug: true, // 콘솔에 본 찾기 과정 출력
+    });
 
     return (
       <>
-        <group ref={characterRef}>{children}</group>
+        <group ref={characterRef}>
+          <Character
+            characterResource={characterResource}
+            currentActionRef={currentActionRef}
+            onAnimationComplete={onAnimationComplete}
+          />
+        </group>
 
-        {/* 모든 트레일은 캐릭터 그룹의 자식으로 배치하여 변환을 상속받음 */}
-        {effectsEnabled.trail && bones && (
-          <>
-            {bones.head && (
-              <BoneTracker
-                bone={bones.head}
-                color="#00ffff" // Brighter cyan
-                width={1.0} // 더 넓게 수정
-                length={7}
-                decay={1.2}
-                attenuation={(width) => width * 0.8}
-              />
-            )}
-            {bones.leftHand && (
-              <BoneTracker
-                bone={bones.leftHand}
-                color="#ff70ff" // 더 밝은 마젠타
-                width={0.9} // 더 넓게 수정
-                length={6}
-                decay={1.0}
-                attenuation={(width) => width * 0.9}
-              />
-            )}
-            {bones.rightHand && (
-              <BoneTracker
-                bone={bones.rightHand}
-                color="#a0ff50" // 더 밝은 라임
-                width={0.9} // 더 넓게 수정
-                length={6}
-                decay={1.0}
-                attenuation={(width) => width * 0.9}
-              />
-            )}
-            {bones.leftFoot && (
-              <BoneTracker
-                bone={bones.leftFoot}
-                color="#ffdd40" // 더 밝은 앰버
-                width={0.8} // 더 넓게 수정
-                length={5}
-                decay={1.5}
-                attenuation={(width) => width * 0.9}
-              />
-            )}
-            {bones.rightFoot && (
-              <BoneTracker
-                bone={bones.rightFoot}
-                color="#ff8040" // 더 밝은 오렌지
-                width={0.8} // 더 넓게 수정
-                length={5}
-                decay={1.5}
-                attenuation={(width) => width * 0.9}
-              />
-            )}
-          </>
-        )}
+        {/* 트레일 효과가 활성화된 경우에만 트레일 렌더링 */}
+        {effectsEnabled.trail &&
+          !isLoading &&
+          createMultipleTrails(DEFAULT_TRAIL_STYLES)}
       </>
     );
   };
@@ -408,13 +200,11 @@ const PreviewScene: React.FC = () => {
 
           {/* Character group with Trail effect */}
           <group ref={characterGroupRef} scale={2} position={[0, -1.75, 0]}>
-            <CharacterWithTrail>
-              <Character
-                characterResource={characterResource}
-                currentActionRef={currentActionRef}
-                onAnimationComplete={handleAnimationComplete}
-              />
-            </CharacterWithTrail>
+            <CharacterWithTrails
+              characterResource={characterResource}
+              currentActionRef={currentActionRef}
+              onAnimationComplete={handleAnimationComplete}
+            />
           </group>
 
           {/*
