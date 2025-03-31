@@ -26,7 +26,7 @@ import {
 import { BlendFunction, GlitchMode } from "postprocessing";
 import * as THREE from "three";
 import { Vector2 } from "three";
-import { useBoneTrail, DEFAULT_TRAIL_STYLES } from "../hooks/useBoneTrail";
+import { useSingleBoneTrail } from "../hooks/useBoneTrail";
 
 /**
  * Simple 3D character preview scene
@@ -144,10 +144,24 @@ const PreviewScene: React.FC = () => {
   }) => {
     const characterRef = useRef<THREE.Group>(null);
 
-    // useBoneTrail 훅을 사용하여 본 트레일 관리
-    const { isLoading, createMultipleTrails } = useBoneTrail(characterRef, {
+    // 각 부위별 트레일 훅 사용
+    const headTrail = useSingleBoneTrail(characterRef, "head", {
       characterGroupRef,
-      debug: true, // 콘솔에 본 찾기 과정 출력
+    });
+    const leftHandTrail = useSingleBoneTrail(characterRef, "leftHand", {
+      characterGroupRef,
+    });
+    const rightHandTrail = useSingleBoneTrail(characterRef, "rightHand", {
+      characterGroupRef,
+    });
+    const leftFootTrail = useSingleBoneTrail(characterRef, "leftFoot", {
+      characterGroupRef,
+    });
+    const rightFootTrail = useSingleBoneTrail(characterRef, "rightFoot", {
+      characterGroupRef,
+    });
+    const spineTrail = useSingleBoneTrail(characterRef, "spine", {
+      characterGroupRef,
     });
 
     return (
@@ -161,9 +175,16 @@ const PreviewScene: React.FC = () => {
         </group>
 
         {/* 트레일 효과가 활성화된 경우에만 트레일 렌더링 */}
-        {effectsEnabled.trail &&
-          !isLoading &&
-          createMultipleTrails(DEFAULT_TRAIL_STYLES)}
+        {effectsEnabled.trail && (
+          <>
+            {headTrail.createTrail("#00ffff")} {/* 밝은 청록색 */}
+            {leftHandTrail.createTrail("#ff70ff")} {/* 밝은 마젠타 */}
+            {rightHandTrail.createTrail("#a0ff50")} {/* 밝은 라임 */}
+            {leftFootTrail.createTrail("#ffdd40")} {/* 밝은 앰버 */}
+            {rightFootTrail.createTrail("#ff8040")} {/* 밝은 오렌지 */}
+            {spineTrail.createTrail("#1e90ff")} {/* 다저 블루 */}
+          </>
+        )}
       </>
     );
   };
