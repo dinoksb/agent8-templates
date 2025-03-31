@@ -6,14 +6,14 @@ export const GhibliShader = {
   uniforms: {
     colorMap: {
       value: [
-        new Color("#427062"),
-        new Color("#33594E"),
-        new Color("#234549"),
-        new Color("#1E363F"),
+        new Color("#7EB6A4"),
+        new Color("#5D9E8F"),
+        new Color("#3D7B7D"),
+        new Color("#2D5A6B"),
       ],
     },
     brightnessThresholds: {
-      value: [0.9, 0.45, 0.001],
+      value: [0.7, 0.4, 0.1],
     },
     lightPosition: { value: new Vector3(15, 15, 15) },
   },
