@@ -15,67 +15,23 @@ export type BonePatterns = {
  * 기본 본 패턴 - 일반적인 3D 모델에서 사용되는 본 이름 패턴
  */
 export const DEFAULT_BONE_PATTERNS: BonePatterns = {
-  head: [
-    "head",
-    "neck",
-    "mixamorigHead",
-    "mixamorigNeck",
-    "spine2",
-    "face",
-    "skull",
-    "Neck",
-    "Head",
-  ],
-  leftHand: [
-    "lefthand",
-    "hand_l",
-    "handleft",
-    "mixamorigLeftHand",
-    "left_hand",
-    "handl",
-    "LeftHand",
-    "Hand_L",
-    "Palm_L",
-    "Lwrist",
-    "hand.L",
-  ],
-  rightHand: [
-    "righthand",
-    "hand_r",
-    "handright",
-    "mixamorigRightHand",
-    "right_hand",
-    "handr",
-    "RightHand",
-    "Hand_R",
-    "Palm_R",
-    "Rwrist",
-    "hand.R",
-  ],
-  leftFoot: [
-    "leftfoot",
-    "foot_l",
-    "footleft",
-    "mixamorigLeftFoot",
-    "left_foot",
-    "footl",
-    "LeftFoot",
-    "Foot_L",
-    "lAnkle",
-    "foot.L",
-  ],
-  rightFoot: [
-    "rightfoot",
-    "foot_r",
-    "footright",
-    "mixamorigRightFoot",
-    "right_foot",
-    "footr",
-    "RightFoot",
-    "Foot_R",
-    "rAnkle",
-    "foot.R",
-  ],
+  // 머리/얼굴 부분
+  head: ["head", "neck", "face", "skull", "spine2"],
+
+  // 왼쪽 손/팔
+  leftHand: ["hand_l", "handleft", "lefthand", "hand.l"],
+
+  // 오른쪽 손/팔
+  rightHand: ["hand_r", "handright", "righthand", "hand.r"],
+
+  // 왼쪽 발/다리
+  leftFoot: ["foot_l", "footleft", "leftfoot", "foot.l"],
+
+  // 오른쪽 발/다리
+  rightFoot: ["foot_r", "footright", "rightfoot", "foot.r"],
+
+  // 몸통/허리
+  spine: ["spine", "spine1", "waist", "hips", "pelvis"],
 };
 
 /**
@@ -349,6 +305,13 @@ export const DEFAULT_TRAIL_STYLES: { [key: string]: TrailStyle } = {
     length: 5,
     decay: 1.5,
     attenuation: (width) => width * 0.9,
+  },
+  spine: {
+    color: "#1e90ff", // 다저 블루 (더 눈에 띄는 파란색)
+    width: 1.2, // 약간 두꺼운 트레일
+    length: 6,
+    decay: 1.3,
+    attenuation: (width) => width * 0.85,
   },
 };
 
