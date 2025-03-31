@@ -10,11 +10,40 @@ import { Character } from "./character/Character";
 import { CharacterResource } from "../types/characterResource";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CharacterAction } from "../constants/character.constant.ts";
+import {
+  EffectComposer,
+  Bloom,
+  Noise,
+  Vignette,
+  DepthOfField,
+  Pixelation,
+  Glitch,
+  Sepia,
+  Scanline,
+  ColorAverage,
+  SMAA,
+} from "@react-three/postprocessing";
+import { BlendFunction, GlitchMode } from "postprocessing";
+import { Vector2 } from "three";
 
 /**
  * Simple 3D character preview scene
  */
 const PreviewScene: React.FC = () => {
+  // 포스트 프로세싱 효과 활성화 상태
+  const [effectsEnabled, setEffectsEnabled] = useState({
+    bloom: false,
+    noise: false,
+    vignette: false,
+    depthOfField: false,
+    pixelation: false,
+    glitch: false,
+    sepia: false,
+    scanline: false,
+    colorAverage: false,
+    smaa: false,
+  });
+
   const [currentAction, setCurrentAction] = useState<CharacterAction>(
     CharacterAction.IDLE
   );
@@ -52,7 +81,7 @@ const PreviewScene: React.FC = () => {
   const characterResource: CharacterResource = useMemo(
     () => ({
       name: "Default Character",
-      url: "https://agent8-games.verse8.io/assets/3d/characters/space-marine.glb",
+      url: "https://agent8-games.verse8.io/assets/3d/characters/human/space-marine.glb",
       animations: {
         IDLE: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/idle.glb",
         WALK: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/walk.glb",
@@ -78,6 +107,19 @@ const PreviewScene: React.FC = () => {
     }),
     []
   );
+
+  // 효과 토글 핸들러
+  const toggleEffect = (effectName) => {
+    setEffectsEnabled((prev) => ({
+      ...prev,
+      [effectName]: !prev[effectName],
+    }));
+  };
+
+  // Glitch 효과를 위한 값 생성
+  const glitchDelay = useMemo(() => new Vector2(1.5, 3.5), []);
+  const glitchDuration = useMemo(() => new Vector2(0.6, 1.0), []);
+  const glitchStrength = useMemo(() => new Vector2(0.3, 1.0), []);
 
   return (
     <div
@@ -118,17 +160,136 @@ const PreviewScene: React.FC = () => {
             />
           </group>
 
+          {/*
+           * EffectComposer is required to apply any post-processing effects
+           * All post-processing effects must be children of EffectComposer
+           */}
+          <EffectComposer>
+            {/*
+             * Bloom adds a glow effect to bright areas of the scene
+             * Parameters:
+             * - intensity: Controls the strength of the glow
+             * - luminanceThreshold: Minimum luminance value that will cause bloom
+             * - luminanceSmoothing: How smoothly the bloom transitions
+             * - mipmapBlur: Enables mipmap-based blur for better performance
+             */}
+            {effectsEnabled.bloom && (
+              <Bloom
+                intensity={1.0}
+                luminanceThreshold={0.8}
+                luminanceSmoothing={0.3}
+                mipmapBlur
+              />
+            )}
+
+            {/*
+             * Noise adds film grain or static noise to the image
+             * Parameters:
+             * - opacity: Controls the intensity of the noise
+             * - blendFunction: Determines how the noise blends with the scene
+             */}
+            {effectsEnabled.noise && (
+              <Noise opacity={0.9} blendFunction={BlendFunction.OVERLAY} />
+            )}
+
+            {/*
+             * Vignette darkens the edges of the screen
+             * Parameters:
+             * - eskil: Controls the algorithm used
+             * - offset: How far the vignette extends from the edges
+             * - darkness: Intensity of the darkening effect
+             */}
+            {effectsEnabled.vignette && (
+              <Vignette eskil={false} offset={0.5} darkness={0.9} />
+            )}
+
+            {/*
+             * DepthOfField simulates camera focus
+             * Parameters:
+             * - focusDistance: Distance to the focus point
+             * - focalLength: Controls how quickly things blur with distance
+             * - bokehScale: Size of the bokeh effect for out-of-focus areas
+             */}
+            {effectsEnabled.depthOfField && (
+              <DepthOfField
+                focusDistance={0.02}
+                focalLength={0.05}
+                bokehScale={2}
+              />
+            )}
+
+            {/*
+             * Pixelation creates a retro pixelated look
+             * Parameters:
+             * - granularity: Controls the size of the pixels (higher = larger pixels)
+             */}
+            {effectsEnabled.pixelation && <Pixelation granularity={5} />}
+
+            {/*
+             * Glitch creates digital distortion effects
+             * Parameters:
+             * - delay: Range of time between glitches (as Vector2)
+             * - duration: Range of glitch duration (as Vector2)
+             * - strength: Strength of the glitch effect (as Vector2)
+             * - mode: Type of glitch effect (CONSTANT, SPORADIC, DISABLED)
+             */}
+            {effectsEnabled.glitch && (
+              <Glitch
+                delay={glitchDelay}
+                duration={glitchDuration}
+                strength={glitchStrength}
+                mode={GlitchMode.SPORADIC}
+              />
+            )}
+
+            {/*
+             * Sepia gives the scene an old, vintage brownish tint
+             * Parameters:
+             * - intensity: Controls the strength of the sepia effect
+             */}
+            {effectsEnabled.sepia && (
+              <Sepia intensity={0.8} blendFunction={BlendFunction.NORMAL} />
+            )}
+
+            {/*
+             * Scanline adds horizontal lines like on old CRT monitors
+             * Parameters:
+             * - density: Number of scanlines
+             * - opacity: Intensity of the scanlines
+             */}
+            {effectsEnabled.scanline && (
+              <Scanline density={1.25} opacity={0.35} />
+            )}
+
+            {/*
+             * ColorAverage averages all colors in the scene, useful for simpler color schemes
+             * Parameters:
+             * - blendFunction: How the effect is applied
+             */}
+            {effectsEnabled.colorAverage && (
+              <ColorAverage blendFunction={BlendFunction.NORMAL} />
+            )}
+
+            {/*
+             * SMAA (Subpixel Morphological Anti-Aliasing) reduces jagged edges
+             * This is often applied as the last effect in the pipeline
+             */}
+            {effectsEnabled.smaa && <SMAA />}
+          </EffectComposer>
+
           {/* Simple camera controls */}
           <OrbitControls enablePan={false} minDistance={3} maxDistance={8} />
         </Canvas>
       </div>
 
+      {/* 애니메이션 컨트롤 버튼 */}
       <div
         style={{
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
           gap: "10px",
+          marginBottom: "20px",
         }}
       >
         {Object.values(CharacterAction)
@@ -150,6 +311,162 @@ const PreviewScene: React.FC = () => {
               {action}
             </button>
           ))}
+      </div>
+
+      {/* 포스트 프로세싱 효과 컨트롤 패널 */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: "10px",
+          marginBottom: "20px",
+          backgroundColor: "#333",
+          padding: "15px",
+          borderRadius: "8px",
+          maxWidth: "800px",
+        }}
+      >
+        <h3
+          style={{
+            width: "100%",
+            textAlign: "center",
+            margin: "0 0 10px 0",
+            color: "white",
+          }}
+        >
+          포스트 프로세싱 효과
+        </h3>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.bloom ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("bloom")}
+        >
+          Bloom {effectsEnabled.bloom ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.noise ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("noise")}
+        >
+          Noise {effectsEnabled.noise ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.vignette ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("vignette")}
+        >
+          Vignette {effectsEnabled.vignette ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.depthOfField ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("depthOfField")}
+        >
+          Depth of Field {effectsEnabled.depthOfField ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.pixelation ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("pixelation")}
+        >
+          Pixelation {effectsEnabled.pixelation ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.glitch ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("glitch")}
+        >
+          Glitch {effectsEnabled.glitch ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.sepia ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("sepia")}
+        >
+          Sepia {effectsEnabled.sepia ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.scanline ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("scanline")}
+        >
+          Scanline {effectsEnabled.scanline ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.colorAverage ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("colorAverage")}
+        >
+          Color Average {effectsEnabled.colorAverage ? "ON" : "OFF"}
+        </button>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.smaa ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("smaa")}
+        >
+          Anti-Aliasing (SMAA) {effectsEnabled.smaa ? "ON" : "OFF"}
+        </button>
       </div>
     </div>
   );
