@@ -3,63 +3,12 @@ import { useFrame } from "@react-three/fiber";
 import { Trail } from "@react-three/drei";
 import * as THREE from "three";
 import { Vector3, Matrix4 } from "three";
-
-/**
- * 본 이름 패턴 타입 정의
- */
-export type BonePatterns = {
-  [key: string]: string[];
-};
-
-/**
- * 기본 본 패턴 - 일반적인 3D 모델에서 사용되는 본 이름 패턴
- */
-export const DEFAULT_BONE_PATTERNS: BonePatterns = {
-  // 머리/얼굴 부분
-  head: ["head", "neck", "face", "skull", "spine2"],
-
-  // 왼쪽 손/팔
-  leftHand: ["hand_l", "handleft", "lefthand", "hand.l"],
-
-  // 오른쪽 손/팔
-  rightHand: ["hand_r", "handright", "righthand", "hand.r"],
-
-  // 왼쪽 발/다리
-  leftFoot: ["foot_l", "footleft", "leftfoot", "foot.l"],
-
-  // 오른쪽 발/다리
-  rightFoot: ["foot_r", "footright", "rightfoot", "foot.r"],
-
-  // 몸통/허리
-  spine: ["spine", "spine1", "waist", "hips", "pelvis"],
-};
-
-/**
- * 트레일 스타일 타입 정의
- */
-export type TrailStyle = {
-  color: string;
-  width: number;
-  length: number;
-  decay: number;
-  attenuation?: (width: number) => number;
-};
-
-/**
- * 본 트레일 옵션 타입 정의
- */
-export type BoneTrailOptions = {
-  /** 찾고자 하는 본 이름 패턴 */
-  bonePatterns?: BonePatterns;
-  /** 디버그 모드 (본 찾기 과정 콘솔 출력) */
-  debug?: boolean;
-  /** 본 찾기 시도 간격 (ms) */
-  retryInterval?: number;
-  /** 본 찾기 최대 시도 횟수 */
-  maxRetries?: number;
-  /** 트레일을 부착할 캐릭터 그룹 ref (스케일, 위치 변환을 적용하기 위함) */
-  characterGroupRef?: React.RefObject<THREE.Group>;
-};
+import {
+  DEFAULT_BONE_PATTERNS,
+  TrailStyle,
+  BoneTrailOptions,
+  createDefaultTrailStyles,
+} from "./boneTrailUtils";
 
 /**
  * 개별 본에 트레일을 적용하는 컴포넌트
@@ -68,8 +17,77 @@ export const BoneTrail: React.FC<{
   bone: THREE.Bone;
   style: TrailStyle;
   characterGroupRef?: React.RefObject<THREE.Group>;
-}> = ({ bone, style, characterGroupRef }) => {
+  active?: boolean;
+}> = ({ bone, style, characterGroupRef, active = true }) => {
   const trailPointRef = useRef<THREE.Mesh>(null);
+
+  // 트레일 트랜지션을 위한 상태
+  const [opacity, setOpacity] = useState(active ? 1 : 0);
+  const [currentWidth, setCurrentWidth] = useState(active ? style.width : 0);
+
+  // 트랜지션 속도 설정
+  const FADE_SPEED = 0.03; // 불투명도 변화 속도
+  const WIDTH_SPEED = 0.07; // 너비 변화 속도
+
+  // active 상태가 변경될 때 트랜지션 처리
+  useEffect(() => {
+    // 이미 목표 상태에 도달했으면 아무것도 하지 않음
+    if (
+      (active && opacity === 1 && currentWidth === style.width) ||
+      (!active && opacity === 0 && currentWidth === 0)
+    ) {
+      return;
+    }
+
+    // 트랜지션 애니메이션 시작
+    const intervalId = setInterval(() => {
+      if (active) {
+        // 페이드 인 (나타나기) - 너비 먼저 증가
+        setCurrentWidth((prev) => {
+          const next = Math.min(prev + style.width * WIDTH_SPEED, style.width);
+          return next;
+        });
+
+        // 너비가 어느 정도 증가한 후 불투명도 증가
+        if (currentWidth > style.width * 0.3) {
+          setOpacity((prev) => {
+            const next = Math.min(prev + FADE_SPEED, 1);
+            return next;
+          });
+        }
+
+        // 완전히 나타났으면 인터벌 정리
+        if (opacity >= 0.99 && currentWidth >= style.width * 0.99) {
+          setOpacity(1);
+          setCurrentWidth(style.width);
+          clearInterval(intervalId);
+        }
+      } else {
+        // 페이드 아웃 (사라지기) - 불투명도 먼저 감소
+        setOpacity((prev) => {
+          const next = Math.max(prev - FADE_SPEED, 0);
+          return next;
+        });
+
+        // 불투명도가 어느 정도 감소한 후 너비 감소
+        if (opacity < 0.7) {
+          setCurrentWidth((prev) => {
+            const next = Math.max(prev - style.width * WIDTH_SPEED, 0);
+            return next;
+          });
+        }
+
+        // 완전히 사라졌으면 인터벌 정리
+        if (opacity <= 0.01 && currentWidth <= 0.01) {
+          setOpacity(0);
+          setCurrentWidth(0);
+          clearInterval(intervalId);
+        }
+      }
+    }, 16); // 약 60fps
+
+    return () => clearInterval(intervalId);
+  }, [active, opacity, currentWidth, style.width]);
 
   useFrame(() => {
     if (!bone || !trailPointRef.current) return;
@@ -95,21 +113,29 @@ export const BoneTrail: React.FC<{
       // 캐릭터 그룹이 없는 경우 월드 위치 그대로 사용
       trailPointRef.current.position.copy(worldPos);
     }
+
+    // 머티리얼 불투명도 업데이트
+    if (trailPointRef.current.material) {
+      (trailPointRef.current.material as THREE.Material).opacity = opacity;
+    }
   });
 
-  const { color, width, length, decay, attenuation } = style;
+  const { color, length, decay, attenuation } = style;
+
+  // 완전히 투명하고 너비가 0이면 렌더링하지 않음
+  if (opacity === 0 && currentWidth === 0) return null;
 
   return (
     <Trail
-      width={width}
+      width={currentWidth}
       color={color}
       length={length}
       decay={decay}
       attenuation={attenuation || ((w) => w * 0.5)}
     >
-      <mesh ref={trailPointRef} visible={false}>
-        <sphereGeometry args={[0.05, 8, 8]} />
-        <meshBasicMaterial color={color} />
+      <mesh ref={trailPointRef} visible={opacity > 0}>
+        <sphereGeometry args={[0.01, 8, 8]} />
+        <meshBasicMaterial color={color} transparent={true} opacity={opacity} />
       </mesh>
     </Trail>
   );
@@ -128,6 +154,7 @@ export function useBoneTrail(
     retryInterval = 100,
     maxRetries = 10,
     characterGroupRef,
+    active = true,
   } = options;
 
   const [bones, setBones] = useState<{ [key: string]: THREE.Bone | null }>({});
@@ -243,6 +270,7 @@ export function useBoneTrail(
         bone={bone}
         style={style}
         characterGroupRef={characterGroupRef}
+        active={active}
       />
     );
   };
@@ -258,120 +286,57 @@ export function useBoneTrail(
       .map(([boneName, style]) => createBoneTrail(boneName, style));
   };
 
+  /**
+   * 지정된 본 이름들에 대해 기본 스타일로 트레일 생성
+   */
+  const createDefaultTrailsForBones = (boneNames?: string[]) => {
+    // 본 이름이 지정되지 않았거나 빈 배열인 경우, 기본적으로 허리/엉덩이('spine')에 트레일 생성
+    const namesToUse =
+      boneNames && boneNames.length > 0 ? boneNames : ["spine"];
+    return createMultipleTrails(createDefaultTrailStyles(namesToUse));
+  };
+
   return {
     bones,
     isLoading,
     error,
     createBoneTrail,
     createMultipleTrails,
+    createDefaultTrailsForBones,
   };
 }
 
 /**
- * 기본 트레일 스타일 - 색상별로 미리 정의된 스타일
+ * 사용법 예시
+ *
+ * 1. 기본 사용법
+ * - characterRef: 캐릭터 모델 참조 (useRef<THREE.Group>)
+ * - characterGroupRef: 캐릭터 그룹 참조 (useRef<THREE.Group>) - 선택사항
+ * - useBoneTrail 훅 사용: const { isLoading, createDefaultTrailsForBones } = useBoneTrail(characterRef, { options })
+ * - 트레일 적용: createDefaultTrailsForBones(['head', 'leftHand', 'rightHand'])
+ * - 파라미터 없이 호출: createDefaultTrailsForBones() - 기본적으로 허리/엉덩이('spine')에 트레일 생성
+ *
+ * 2. 커스텀 본 패턴 사용
+ * - 커스텀 본 패턴 정의:
+ *   const myBonePatterns = {
+ *     weapon: ['sword', 'gun', 'weapon'],
+ *     cape: ['cape', 'cloak', 'mantle']
+ *   }
+ * - useBoneTrail 사용 시 옵션으로 전달:
+ *   useBoneTrail(characterRef, { bonePatterns: myBonePatterns })
+ *
+ * 3. 커스텀 스타일 적용
+ * - boneTrailUtils의 createDefaultTrailStyle 함수 사용
+ * - import { createDefaultTrailStyle } from './boneTrailUtils'
+ * - 스타일 적용 예시:
+ *   createMultipleTrails({
+ *     weapon: { ...createDefaultTrailStyle('#ff0000'), length: 8 },
+ *     cape: { ...createDefaultTrailStyle('#5500ff'), length: 6, decay: 1.5 }
+ *   })
+ *
+ * 4. 모든 발견된 본에 트레일 적용
+ * - bones 객체에서 발견된 본 추출:
+ *   const allBoneNames = Object.keys(bones).filter(name => bones[name] !== null)
+ * - 모든 본에 기본 스타일 적용:
+ *   createDefaultTrailsForBones(allBoneNames)
  */
-export const DEFAULT_TRAIL_STYLES: { [key: string]: TrailStyle } = {
-  head: {
-    color: "#00ffff", // 밝은 청록색
-    width: 1.0,
-    length: 7,
-    decay: 1.2,
-    attenuation: (width) => width * 0.8,
-  },
-  leftHand: {
-    color: "#ff70ff", // 밝은 마젠타
-    width: 0.9,
-    length: 6,
-    decay: 1.0,
-    attenuation: (width) => width * 0.9,
-  },
-  rightHand: {
-    color: "#a0ff50", // 밝은 라임
-    width: 0.9,
-    length: 6,
-    decay: 1.0,
-    attenuation: (width) => width * 0.9,
-  },
-  leftFoot: {
-    color: "#ffdd40", // 밝은 앰버
-    width: 0.8,
-    length: 5,
-    decay: 1.5,
-    attenuation: (width) => width * 0.9,
-  },
-  rightFoot: {
-    color: "#ff8040", // 밝은 오렌지
-    width: 0.8,
-    length: 5,
-    decay: 1.5,
-    attenuation: (width) => width * 0.9,
-  },
-  spine: {
-    color: "#1e90ff", // 다저 블루 (더 눈에 띄는 파란색)
-    width: 1.2, // 약간 두꺼운 트레일
-    length: 6,
-    decay: 1.3,
-    attenuation: (width) => width * 0.85,
-  },
-};
-
-// 사용법 예시 (마지막에 추가):
-
-//  * 사용법 예시
-//  *
-//  * // 기본 사용법
-//  * function MyCharacter() {
-//  *   const characterRef = useRef<THREE.Group>(null);
-//  *   const characterGroupRef = useRef<THREE.Group>(null);
-//  *
-//  *   const { isLoading, createBoneTrail, createMultipleTrails } = useBoneTrail(characterRef, {
-//  *     characterGroupRef,
-//  *     debug: true
-//  *   });
-//  *
-//  *   return (
-//  *     <group ref={characterGroupRef}>
-//  *       <group ref={characterRef}>
-//  *         {/* 캐릭터 모델 */}
-//  *         <primitive object={myModel} />
-//  *       </group>
-//  *
-//  *       {/* 단일 본에 트레일 적용 */}
-//  *       {!isLoading && createBoneTrail('leftHand', {
-//  *         color: '#ff00ff',
-//  *         width: 0.8,
-//  *         length: 5,
-//  *         decay: 1.2
-//  *       })}
-//  *
-//  *       {/* 여러 본에 동시에 트레일 적용 */}
-//  *       {!isLoading && createMultipleTrails({
-//  *         head: DEFAULT_TRAIL_STYLES.head,
-//  *         leftHand: DEFAULT_TRAIL_STYLES.leftHand,
-//  *         rightHand: DEFAULT_TRAIL_STYLES.rightHand
-//  *       })}
-//  *     </group>
-//  *   );
-//  * }
-//  *
-//  * // 커스텀 본 패턴으로 사용하기
-//  * const myBonePatterns = {
-//  *   weapon: ['sword', 'gun', 'weapon'],
-//  *   cape: ['cape', 'cloak', 'mantle']
-//  * };
-//  *
-//  * function CharacterWithCustomBones() {
-//  *   const { createMultipleTrails } = useBoneTrail(characterRef, {
-//  *     bonePatterns: myBonePatterns
-//  *   });
-//  *
-//  *   return (
-//  *     <>
-//  *       {/* 캐릭터와 무기에 트레일 적용 */}
-//  *       {createMultipleTrails({
-//  *         weapon: { color: '#ff0000', width: 1.0, length: 8, decay: 1.0 },
-//  *         cape: { color: '#5500ff', width: 1.2, length: 6, decay: 1.5 }
-//  *       })}
-//  *     </>
-//  *   );
-//  * }

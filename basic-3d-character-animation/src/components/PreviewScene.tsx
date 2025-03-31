@@ -26,7 +26,20 @@ import {
 import { BlendFunction, GlitchMode } from "postprocessing";
 import * as THREE from "three";
 import { Vector2 } from "three";
-import { useBoneTrail, DEFAULT_TRAIL_STYLES } from "../hooks/useBoneTrail";
+import { useBoneTrail } from "../hooks/useBoneTrail";
+
+// 메모이제이션된 캐릭터 컴포넌트 타입 정의
+type MemoCharacterProps = {
+  characterResource: CharacterResource;
+  currentActionRef: React.RefObject<CharacterAction>;
+  onAnimationComplete: (action: CharacterAction) => void;
+};
+
+// 트레일 컴포넌트 타입 정의
+type CharacterTrailsProps = {
+  characterRef: React.RefObject<THREE.Group>;
+  active: boolean;
+};
 
 /**
  * Simple 3D character preview scene
@@ -84,7 +97,7 @@ const PreviewScene: React.FC = () => {
   const characterResource: CharacterResource = useMemo(
     () => ({
       name: "Default Character",
-      url: "https://agent8-games.verse8.io/assets/3d/characters/human/space-marine.glb",
+      url: "https://agent8-games.verse8.io/assets/3d/characters/human/commando.glb",
       animations: {
         IDLE: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/idle.glb",
         WALK: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/walk.glb",
@@ -112,7 +125,7 @@ const PreviewScene: React.FC = () => {
   );
 
   // 효과 토글 핸들러
-  const toggleEffect = (effectName) => {
+  const toggleEffect = (effectName: string) => {
     setEffectsEnabled((prev) => {
       const newState = {
         ...prev,
@@ -134,39 +147,49 @@ const PreviewScene: React.FC = () => {
   const glitchStrength = useMemo(() => new Vector2(0.3, 1.0), []);
 
   // 캐릭터 그룹에 대한 참조
-  const characterGroupRef = useRef(null);
+  const characterGroupRef = useRef<THREE.Group>(null);
 
-  // Character 컴포넌트와 Trail을 통합한 컴포넌트
-  const CharacterWithTrails = ({
-    characterResource,
-    currentActionRef,
-    onAnimationComplete,
-  }) => {
-    const characterRef = useRef<THREE.Group>(null);
-
-    // useBoneTrail 훅을 사용하여 본 트레일 관리
-    const { isLoading, createMultipleTrails } = useBoneTrail(characterRef, {
-      characterGroupRef,
-      debug: true, // 콘솔에 본 찾기 과정 출력
-    });
-
-    return (
-      <>
-        <group ref={characterRef}>
+  // 메모이제이션된 캐릭터 컴포넌트
+  const MemoizedCharacter = useMemo(
+    () =>
+      React.memo<MemoCharacterProps>(
+        ({ characterResource, currentActionRef, onAnimationComplete }) => (
           <Character
             characterResource={characterResource}
             currentActionRef={currentActionRef}
             onAnimationComplete={onAnimationComplete}
           />
-        </group>
+        )
+      ),
+    []
+  );
 
-        {/* 트레일 효과가 활성화된 경우에만 트레일 렌더링 */}
-        {effectsEnabled.trail &&
-          !isLoading &&
-          createMultipleTrails(DEFAULT_TRAIL_STYLES)}
-      </>
-    );
-  };
+  // 트레일 컴포넌트 - Character와 분리
+  const CharacterTrails = useMemo(() => {
+    const TrailComponent: React.FC<CharacterTrailsProps> = ({
+      characterRef,
+      active,
+    }) => {
+      // useBoneTrail 훅을 사용하여 본 트레일 관리
+      const { isLoading, createDefaultTrailsForBones } = useBoneTrail(
+        characterRef,
+        {
+          characterGroupRef,
+          debug: false,
+          active: active,
+        }
+      );
+
+      if (isLoading) return null;
+
+      // 트레일은 항상 렌더링하지만, active 상태에 따라 서서히 나타나거나 사라짐
+      return <>{createDefaultTrailsForBones()}</>;
+    };
+    return TrailComponent;
+  }, []);
+
+  // 캐릭터 참조
+  const characterRef = useRef<THREE.Group>(null);
 
   return (
     <div
@@ -200,10 +223,18 @@ const PreviewScene: React.FC = () => {
 
           {/* Character group with Trail effect */}
           <group ref={characterGroupRef} scale={2} position={[0, -1.75, 0]}>
-            <CharacterWithTrails
-              characterResource={characterResource}
-              currentActionRef={currentActionRef}
-              onAnimationComplete={handleAnimationComplete}
+            <group ref={characterRef}>
+              <MemoizedCharacter
+                characterResource={characterResource}
+                currentActionRef={currentActionRef}
+                onAnimationComplete={handleAnimationComplete}
+              />
+            </group>
+
+            {/* 트레일 컴포넌트 - 캐릭터 모델과 분리해서 렌더링 */}
+            <CharacterTrails
+              characterRef={characterRef}
+              active={effectsEnabled.trail}
             />
           </group>
 
