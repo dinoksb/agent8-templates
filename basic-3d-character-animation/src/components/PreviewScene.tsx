@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Character } from "./character/Character";
 import { CharacterResource } from "../types/characterResource";
 import { Environment, OrbitControls } from "@react-three/drei";
@@ -26,7 +26,7 @@ import {
 import { BlendFunction, GlitchMode } from "postprocessing";
 import * as THREE from "three";
 import { Vector2 } from "three";
-import { useSingleBoneTrail } from "../hooks/useBoneTrail";
+import { useTrailEffect } from "../hooks/useTrailEffect.tsx";
 
 /**
  * Simple 3D character preview scene
@@ -137,31 +137,90 @@ const PreviewScene: React.FC = () => {
   const characterGroupRef = useRef(null);
 
   // Character 컴포넌트와 Trail을 통합한 컴포넌트
-  const CharacterWithTrails = ({
-    characterResource,
-    currentActionRef,
-    onAnimationComplete,
-  }) => {
+  const CharacterWithTrails: React.FC<{
+    characterResource: CharacterResource;
+    currentActionRef: React.RefObject<CharacterAction>;
+    onAnimationComplete: (action: CharacterAction) => void;
+  }> = ({ characterResource, currentActionRef, onAnimationComplete }) => {
     const characterRef = useRef<THREE.Group>(null);
 
-    // 각 부위별 트레일 훅 사용
-    const headTrail = useSingleBoneTrail(characterRef, "head", {
-      characterGroupRef,
+    // 본 위치를 저장할 상태 (로컬 좌표계)
+    const [boneLocalPosition, setBoneLocalPosition] =
+      useState<THREE.Vector3 | null>(null);
+
+    // 트레일 생성을 위한 훅 - 위치만 전달
+    const { createTrail } = useTrailEffect(null, {
+      position: boneLocalPosition,
     });
-    const leftHandTrail = useSingleBoneTrail(characterRef, "leftHand", {
-      characterGroupRef,
-    });
-    const rightHandTrail = useSingleBoneTrail(characterRef, "rightHand", {
-      characterGroupRef,
-    });
-    const leftFootTrail = useSingleBoneTrail(characterRef, "leftFoot", {
-      characterGroupRef,
-    });
-    const rightFootTrail = useSingleBoneTrail(characterRef, "rightFoot", {
-      characterGroupRef,
-    });
-    const spineTrail = useSingleBoneTrail(characterRef, "spine", {
-      characterGroupRef,
+
+    // 매 프레임마다 본 위치 계산
+    useFrame(() => {
+      if (!characterRef.current || !characterGroupRef.current) return;
+
+      // 모델에서 몸통 본 찾기
+      let foundBone: THREE.Bone | null = null;
+
+      characterRef.current.traverse((object) => {
+        if (
+          object.type === "SkinnedMesh" &&
+          (object as THREE.SkinnedMesh).skeleton
+        ) {
+          const skeleton = (object as THREE.SkinnedMesh).skeleton;
+
+          // 몸통 본 이름들 (우선순위 순서대로)
+          const bodyBoneNames = [
+            "spine",
+            "spine1",
+            "waist",
+            "hips",
+            "pelvis",
+            "torso",
+            "body",
+            "abdomen",
+            "Hips",
+          ];
+
+          // 몸통 본 찾기
+          for (const boneName of bodyBoneNames) {
+            const bone = skeleton.bones.find((b) =>
+              b.name.toLowerCase().includes(boneName.toLowerCase())
+            );
+
+            if (bone) {
+              foundBone = bone;
+              break;
+            }
+          }
+        }
+      });
+
+      // 월드 좌표 계산
+      const worldPos = new THREE.Vector3();
+
+      // 본을 찾았으면 본의 위치 계산
+      if (foundBone) {
+        // 본의 월드 매트릭스 업데이트
+        foundBone.updateWorldMatrix(true, false);
+
+        // 본의 월드 위치 구하기
+        foundBone.getWorldPosition(worldPos);
+      }
+      // 본을 찾지 못했을 경우 캐릭터 위치를 사용
+      else {
+        characterRef.current.getWorldPosition(worldPos);
+      }
+
+      // 캐릭터 그룹의 로컬 좌표계로 변환
+      // characterGroupRef의 월드 투 로컬 변환 매트릭스
+      const groupWorldMatrix = new THREE.Matrix4();
+      characterGroupRef.current.updateWorldMatrix(true, false);
+      groupWorldMatrix.copy(characterGroupRef.current.matrixWorld).invert();
+
+      // 월드 좌표를 캐릭터 그룹 기준의 로컬 좌표로 변환
+      const localPos = worldPos.clone().applyMatrix4(groupWorldMatrix);
+
+      // 변환된 로컬 위치 업데이트
+      setBoneLocalPosition(localPos);
     });
 
     return (
@@ -175,16 +234,7 @@ const PreviewScene: React.FC = () => {
         </group>
 
         {/* 트레일 효과가 활성화된 경우에만 트레일 렌더링 */}
-        {effectsEnabled.trail && (
-          <>
-            {headTrail.createTrail("#00ffff")} {/* 밝은 청록색 */}
-            {leftHandTrail.createTrail("#ff70ff")} {/* 밝은 마젠타 */}
-            {rightHandTrail.createTrail("#a0ff50")} {/* 밝은 라임 */}
-            {leftFootTrail.createTrail("#ffdd40")} {/* 밝은 앰버 */}
-            {rightFootTrail.createTrail("#ff8040")} {/* 밝은 오렌지 */}
-            {spineTrail.createTrail("#1e90ff")} {/* 다저 블루 */}
-          </>
-        )}
+        {effectsEnabled.trail && createTrail()}
       </>
     );
   };
