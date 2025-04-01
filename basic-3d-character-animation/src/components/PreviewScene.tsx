@@ -10,15 +10,44 @@ import { Character } from "./character/Character";
 import { CharacterResource } from "../types/characterResource";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CharacterAction } from "../constants/character.constant.ts";
+import { CharacterOutline, OutlineProps } from "./effects/OutlineEffect.tsx";
+import * as THREE from "three";
 
 /**
  * Simple 3D character preview scene
  */
 const PreviewScene: React.FC = () => {
+  // 효과 상태 관리
+  const [effectsEnabled, setEffectsEnabled] = useState({
+    outline: true, // 아웃라인 기본 활성화
+  });
+
+  // 캐릭터 모델 참조
+  const characterRef = useRef<THREE.Group>(null);
+
   const [currentAction, setCurrentAction] = useState<CharacterAction>(
     CharacterAction.IDLE
   );
   const currentActionRef = useRef<CharacterAction>(CharacterAction.IDLE);
+
+  // 아웃라인 효과 설정
+  const outlineProps = useMemo<OutlineProps>(
+    () => ({
+      enabled: effectsEnabled.outline,
+      color: "black",
+      thickness: 1.5,
+      opacity: 0.8,
+    }),
+    [effectsEnabled.outline]
+  );
+
+  // 효과 토글 핸들러
+  const toggleEffect = (effectName: string) => {
+    setEffectsEnabled((prev) => ({
+      ...prev,
+      [effectName]: !prev[effectName],
+    }));
+  };
 
   // Update currentActionRef when currentAction state changes
   useEffect(() => {
@@ -52,7 +81,7 @@ const PreviewScene: React.FC = () => {
   const characterResource: CharacterResource = useMemo(
     () => ({
       name: "Default Character",
-      url: "https://agent8-games.verse8.io/assets/3d/characters/space-marine.glb",
+      url: "https://agent8-games.verse8.io/assets/3d/characters/human/space-marine.glb",
       animations: {
         IDLE: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/idle.glb",
         WALK: "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/walk.glb",
@@ -110,11 +139,17 @@ const PreviewScene: React.FC = () => {
           <Environment preset="sunset" background={false} />
 
           {/* Character group */}
-          <group scale={2} position={[0, -1.75, 0]}>
+          <group scale={2} position={[0, -1.75, 0]} ref={characterRef}>
             <Character
               characterResource={characterResource}
               currentActionRef={currentActionRef}
               onAnimationComplete={handleAnimationComplete}
+            />
+
+            {/* 아웃라인 효과 적용 */}
+            <CharacterOutline
+              modelRef={characterRef}
+              outlineProps={outlineProps}
             />
           </group>
 
@@ -123,6 +158,46 @@ const PreviewScene: React.FC = () => {
         </Canvas>
       </div>
 
+      {/* 효과 컨트롤 버튼 */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: "10px",
+          marginBottom: "20px",
+          backgroundColor: "#333",
+          padding: "15px",
+          borderRadius: "8px",
+          maxWidth: "800px",
+        }}
+      >
+        <h3
+          style={{
+            width: "100%",
+            textAlign: "center",
+            margin: "0 0 10px 0",
+            color: "white",
+          }}
+        >
+          효과 설정
+        </h3>
+        <button
+          style={{
+            padding: "8px 16px",
+            backgroundColor: effectsEnabled.outline ? "#27ae60" : "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+          onClick={() => toggleEffect("outline")}
+        >
+          아웃라인 {effectsEnabled.outline ? "ON" : "OFF"}
+        </button>
+      </div>
+
+      {/* 애니메이션 컨트롤 버튼 */}
       <div
         style={{
           display: "flex",
