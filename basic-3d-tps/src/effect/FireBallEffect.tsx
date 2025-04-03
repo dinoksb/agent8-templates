@@ -13,7 +13,8 @@ export const FireBallEffect: React.FC<{
   duration?: number;
   disableBillboard?: boolean;
   volume?: boolean;
-}> = ({ position, scale, normal, duration, disableBillboard = false, volume = true }) => {
+  onComplete?: () => void;
+}> = ({ position, scale, normal, duration, disableBillboard = false, volume = true, onComplete }) => {
 
   const resolutionUniform = useMemo(() => ({
     value: new Vector2(window.innerWidth, window.innerHeight)
@@ -38,6 +39,7 @@ export const FireBallEffect: React.FC<{
         time: { value: 0 },
       }}
       fadeOut={true}
+      onComplete={onComplete}
     />
   );
 };
