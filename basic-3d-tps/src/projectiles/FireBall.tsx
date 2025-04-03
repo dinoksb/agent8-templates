@@ -1,5 +1,4 @@
-import { useRef, useMemo, useCallback } from "react";
-import { CollisionPayload } from "@react-three/rapier";
+import { useRef, useMemo } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import BaseProjectile, {
@@ -22,21 +21,12 @@ export default function FireBall({
   size = [0.1, 0.1, 0.1],
   onCollision,
   onRemove, // 🔥 BaseProjectile에서 호출될 제거 콜백
-}: FireBallProps & { onRemove?: () => void }) {
+}: FireBallProps) {
   const projectileRef = useRef<BaseProjectileHandle>(null);
 
   // 이펙트 위치 및 스케일 (ref 객체 유지)
-  const effectPosition = useMemo(() => new THREE.Vector3(...position), []);
-  const effectScale = useMemo(() => new THREE.Vector3(0.5, 0.5, 0.5), []);
-
-  const handleCollision = useCallback(
-    (collision: CollisionPayload) => {
-  
-      onCollision?.(collision);
-    },
-    [onCollision]
-  );
-  
+  const effectPosition = useMemo(() => new THREE.Vector3(...position), [position]);
+  const effectScale = useMemo(() => 0.5, []);
 
   // 매 프레임 이펙트 위치 업데이트
   useFrame(() => {
@@ -55,7 +45,7 @@ export default function FireBall({
         size={size}
         sensor={sensor}
         lifespan={lifespan}
-        onCollision={handleCollision}
+        onCollision={onCollision}
         onRemove={onRemove}
         visible={false}
         gravityScale={0}
@@ -65,7 +55,7 @@ export default function FireBall({
       <FireBallEffect
         position={effectPosition}
         scale={effectScale}
-        duration={lifespan * 2}
+        duration={lifespan}
         disableBillboard={false}
       />
     </>

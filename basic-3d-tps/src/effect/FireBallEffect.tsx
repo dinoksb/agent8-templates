@@ -4,24 +4,27 @@ import { Vector3 } from "three";
 import { ShaderEffect } from "./ShaderEffect";
 import fragmentShader from "../../public/shaders/fire/fire.frag.glsl";
 import vertexShader from "../../public/shaders/fire/fire.vert.glsl";
+import { useMemo } from "react";
 
 export const FireBallEffect: React.FC<{
   position: Vector3;
-  scale?: Vector3;
+  scale?: number;
   normal?: Vector3;
   duration?: number;
   disableBillboard?: boolean;
   volume?: boolean;
 }> = ({ position, scale, normal, duration, disableBillboard = false, volume = true }) => {
-  // scale이 Vector3로 전달되면 첫 번째 값을 사용
-  const scaleValue = scale instanceof Vector3 ? scale.x : 1;
+
+  const resolutionUniform = useMemo(() => ({
+    value: new Vector2(window.innerWidth, window.innerHeight)
+  }), [])
 
   return (
     <ShaderEffect
       position={position}
       vertexShader={vertexShader}
       fragmentShader={fragmentShader}
-      scale={scaleValue * 1.2}
+      scale={scale * 1.2}
       color={new Color(1, 1, 1)}
       duration={duration}
       blending={AdditiveBlending}
@@ -31,9 +34,7 @@ export const FireBallEffect: React.FC<{
       depthTest={false}
       volume={volume}
       uniforms={{
-        resolution: {
-          value: new Vector2(window.innerWidth, window.innerHeight),
-        },
+        resolution: resolutionUniform,
         time: { value: 0 },
       }}
       fadeOut={true}
