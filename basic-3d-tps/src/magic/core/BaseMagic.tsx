@@ -71,7 +71,8 @@ export interface BaseMagicProps {
   onCast?: () => void; // 발동 시 콜백
   onHit?: (
     target: THREE.Object3D | THREE.Mesh | unknown,
-    point: THREE.Vector3
+    point: THREE.Vector3,
+    effects: MagicEffect[]
   ) => void; // 명중 시 콜백
   onComplete?: () => void; // 완료 시 콜백
   debug?: boolean; // 디버그 모드
@@ -86,7 +87,6 @@ export interface MagicHandle {
   deactivate: () => void; // 마법 비활성화
   isActive: () => boolean; // 활성화 상태 확인
   getPosition: () => THREE.Vector3; // 현재 위치 반환
-  getEffects: () => MagicEffect[]; // 효과 목록 반환
 }
 
 /**

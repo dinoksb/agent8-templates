@@ -310,6 +310,23 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
         if (newOpacity === 0 || newOpacity < 1) {
           setIsVisible(false);
           onComplete?.();
+          // if (meshRef.current) {
+          //   // geometry 및 material 해제
+          //   if (meshRef.current.geometry) {
+          //     meshRef.current.geometry.dispose();
+          //   }
+
+          //   if (meshRef.current.material) {
+          //     if (Array.isArray(meshRef.current.material)) {
+          //       meshRef.current.material.forEach((material) =>
+          //         material.dispose()
+          //       );
+          //     } else {
+          //       meshRef.current.material.dispose();
+          //     }
+          //   }
+          // }
+          // console.log("ShaderEffect completed");
         }
       }
     };

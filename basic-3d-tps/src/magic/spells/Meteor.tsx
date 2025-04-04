@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FireBallEffect } from "../../effect/FireBallEffect";
 import ProjectileMagic, {
@@ -9,6 +9,7 @@ import {
   MagicEffectType,
   ProjectileMagicProps,
 } from "../core/BaseMagic";
+import MagicCircle from "../effects/MagicCircle";
 
 // 메테오 전용 속성
 export interface MeteorProps
@@ -21,6 +22,9 @@ export interface MeteorProps
   spreadRadius?: number; // 목적지 주변 랜덤 확산 범위
   explosionRadius?: number; // 폭발 반경
   explosionDamage?: number; // 폭발 데미지
+  showMagicCircle?: boolean; // 마법진 표시 여부
+  magicCircleRadius?: number; // 마법진 반경
+  magicCircleDuration?: number; // 마법진 지속 시간 (ms)
   onAreaDamage?: (
     position: THREE.Vector3,
     radius: number,
@@ -32,6 +36,7 @@ export interface MeteorProps
  * 메테오 마법 컴포넌트
  * - 화염 속성 중력 영향 투사체
  * - 지정된 목표 지점에 충돌 시 폭발 및 영역 데미지
+ * - 마법진 효과를 목표 지점에 표시 가능
  */
 const Meteor: React.FC<MeteorProps> = ({
   targetPosition,
@@ -41,13 +46,18 @@ const Meteor: React.FC<MeteorProps> = ({
   duration = 10000,
   explosionRadius = 5,
   explosionDamage = 50,
+  showMagicCircle = true, // 기본적으로 마법진 표시
+  magicCircleRadius = 4, // 기본 마법진 반경
+  magicCircleDuration = 5000, // 마법진 지속 시간 (5초)
   onAreaDamage,
   onHit,
   onComplete,
   debug = false,
-  ...rest
 }) => {
   const meteorRef = useRef<ProjectileMagicHandle>(null);
+
+  // 마법진 표시 여부 상태
+  const [magicCircleVisible, setMagicCircleVisible] = useState(showMagicCircle);
 
   // 타겟 위치를 Vector3로 변환
   const targetVector = useMemo(() => {
@@ -94,6 +104,11 @@ const Meteor: React.FC<MeteorProps> = ({
     return dir.normalize();
   }, []);
 
+  // 마법진 효과가 완료되면 호출
+  const handleMagicCircleComplete = () => {
+    setMagicCircleVisible(false);
+  };
+
   // 충돌 시 효과와 데미지 처리를 위한 핸들러
   const handleHit = (
     target: THREE.Object3D | THREE.Mesh | unknown,
@@ -105,14 +120,14 @@ const Meteor: React.FC<MeteorProps> = ({
     }
 
     // 원래 충돌 콜백 호출
-    if (onHit) onHit(target, point);
+    if (onHit) onHit(target, point, [...effects]);
   };
 
   // 메테오 이펙트 컴포넌트 (크기 2배)
   const meteorVisual = (
     <FireBallEffect
       position={new THREE.Vector3(0, 0, 0)} // 위치는 ProjectileMagic에서 업데이트
-      scale={2}
+      scale={8}
       duration={duration}
       disableBillboard={false}
     />
@@ -122,37 +137,57 @@ const Meteor: React.FC<MeteorProps> = ({
   const effects = [
     {
       type: MagicEffectType.DAMAGE,
-      value: explosionDamage,
+      damage: explosionDamage,
       radius: explosionRadius,
     },
     {
       type: MagicEffectType.BURN,
-      value: explosionDamage * 0.3, // 연소 데미지
+      damage: explosionDamage * 0.3, // 연소 데미지
       duration: 5000, // 5초 동안 화상
       interval: 1000, // 1초마다 데미지
       radius: explosionRadius * 0.7, // 폭발 반경의 70%
-      chance: 0.8,
     },
   ];
 
+  // 메테오 충돌 또는 완료 시 마법진도 제거
+  const handleComplete = () => {
+    setMagicCircleVisible(false);
+    if (onComplete) onComplete();
+  };
+
   return (
-    <ProjectileMagic
-      ref={meteorRef}
-      position={startPosition}
-      direction={direction}
-      velocity={velocity}
-      element={MagicElement.FIRE}
-      size={[2, 2, 2]} // 메테오는 큰 크기로
-      duration={duration}
-      gravity={3} // 중력 영향 받음
-      mass={10} // 무거운 질량
-      effects={effects}
-      visualComponent={meteorVisual}
-      onHit={handleHit}
-      onComplete={onComplete}
-      debug={debug}
-      {...rest}
-    />
+    <>
+      {/* 마법진 효과 */}
+      {magicCircleVisible && (
+        <MagicCircle
+          position={finalTargetPosition}
+          radius={magicCircleRadius}
+          opacity={0.8}
+          rotation={0}
+          duration={magicCircleDuration}
+          onComplete={handleMagicCircleComplete}
+          fadeOut={true}
+        />
+      )}
+
+      {/* 메테오 투사체 */}
+      <ProjectileMagic
+        ref={meteorRef}
+        position={startPosition}
+        direction={direction}
+        velocity={velocity}
+        element={MagicElement.FIRE}
+        size={[8, 8, 8]} // 메테오는 큰 크기로
+        duration={duration}
+        gravity={0.1} // 중력 영향 받음
+        mass={0.1} // 무거운 질량
+        effects={effects}
+        visualComponent={meteorVisual}
+        onHit={handleHit}
+        onComplete={handleComplete}
+        debug={debug}
+      />
+    </>
   );
 };
 

@@ -7,6 +7,7 @@ import {
   MagicElement,
   MagicEffectType,
   ProjectileMagicProps,
+  MagicEffect,
 } from "../core/BaseMagic";
 
 // 파이어볼 전용 속성
@@ -34,11 +35,12 @@ const FireBall: React.FC<FireBallProps> = ({
   // 충돌 시 효과와 데미지 처리를 위한 핸들러
   const handleHit = (
     target: THREE.Object3D | THREE.Mesh | unknown,
-    point: THREE.Vector3
+    point: THREE.Vector3,
+    effects: MagicEffect[]
   ) => {
     // 원래 충돌 콜백 호출
-    if (onHit) onHit(target, point);
-    console.log("FireBall hit at position:", point.x, point.y, point.z);
+    if (onHit) onHit(target, point, effects);
+    console.log("FireBall hit at target:", target);
   };
 
   // 파이어볼 이펙트 컴포넌트
