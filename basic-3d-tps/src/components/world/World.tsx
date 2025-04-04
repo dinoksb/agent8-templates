@@ -1,11 +1,49 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Environment, Grid } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
-import { useThree } from "@react-three/fiber";
+import { useThree, useFrame } from "@react-three/fiber";
 import { CharacterResource } from "../../types/characterResource";
 import { Character } from "../character/Player";
 import * as THREE from "three";
 import FireBall from "../../projectiles/FireBall";
+import Meteor from "../../projectiles/Meteor";
+import { FireBallEffect } from "../../effect/FireBallEffect";
+
+// 데미지 범위 디버그 시각화 컴포넌트
+const DamageRadiusDebug = ({ position, radius, duration = 3000 }) => {
+  const [visible, setVisible] = useState(true);
+  const radiusRef = useRef<THREE.Mesh>(null);
+
+  // 애니메이션 효과
+  useFrame(() => {
+    if (radiusRef.current && visible) {
+      // 천천히 회전
+      radiusRef.current.rotation.y += 0.01;
+    }
+  });
+
+  // 일정 시간 후 자동으로 숨김 처리
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setVisible(false);
+    }, duration);
+
+    return () => clearTimeout(timer);
+  }, [duration]);
+
+  if (!visible) return null;
+
+  return (
+    <mesh ref={radiusRef} position={[position.x, position.y + 0.1, position.z]}>
+      <sphereGeometry args={[radius, 32, 16]} />
+      <meshBasicMaterial color="#ff3300" transparent opacity={0.25} />
+      <lineSegments>
+        <edgesGeometry args={[new THREE.SphereGeometry(radius, 32, 16)]} />
+        <lineBasicMaterial color="#ff3300" transparent opacity={0.7} />
+      </lineSegments>
+    </mesh>
+  );
+};
 
 // 충돌 테스트용 박스 컴포넌트
 const CollisionTestBox = ({
@@ -57,6 +95,21 @@ export const World: React.FC = () => {
 
   // 발사된 파이어볼 목록 관리
   const [fireballs, setFireballs] = useState<
+    { id: string; element: JSX.Element }[]
+  >([]);
+
+  // 발사된 메테오 목록 관리
+  const [meteors, setMeteors] = useState<
+    { id: string; element: JSX.Element }[]
+  >([]);
+
+  // 시각 효과 목록 관리
+  const [effects, setEffects] = useState<
+    { id: string; element: JSX.Element }[]
+  >([]);
+
+  // 데미지 범위 디버그 시각화 목록
+  const [damageDebugVisuals, setDamageDebugVisuals] = useState<
     { id: string; element: JSX.Element }[]
   >([]);
 
@@ -132,16 +185,19 @@ export const World: React.FC = () => {
 
   // 클릭 이벤트로 파이어볼 발사
   useEffect(() => {
-    const handleClick = () => {
-      if (document.pointerLockElement) {
-        // 카메라 위치를 플레이어 위치로 사용
-        const playerPosition = camera.position.clone();
-        playerPosition.y -= 1.6; // 플레이어 높이 조정 (카메라가 머리 위에 있음)
+    const handleClick = (event) => {
+      if (!document.pointerLockElement) return;
 
-        // 카메라 방향 가져오기
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction);
+      // 카메라 위치를 플레이어 위치로 사용
+      const playerPosition = camera.position.clone();
+      playerPosition.y -= 1.6; // 플레이어 높이 조정 (카메라가 머리 위에 있음)
 
+      // 카메라 방향 가져오기
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+
+      // 좌클릭: 파이어볼 발사
+      if (event.button === 0) {
         // 발사 위치 계산 (플레이어 위치 + 높이 + 약간 앞으로 오프셋)
         const spawnPosition: [number, number, number] = [
           playerPosition.x + direction.x * 0.5,
@@ -175,10 +231,123 @@ export const World: React.FC = () => {
           { id: fireballId, element: fireball },
         ]);
       }
+
+      // 우클릭: 메테오 발사
+      else if (event.button === 2) {
+        // 카메라 방향으로 레이캐스팅하여 타겟 위치 결정
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(new THREE.Vector2(0, 0), camera); // 화면 중앙 기준
+
+        // 지면과의 교차점 계산 (y=0 평면 사용)
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const targetPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(groundPlane, targetPoint);
+
+        // 타겟 지점을 찾지 못하면 카메라 앞 20미터 지점으로 설정
+        if (!targetPoint.x && !targetPoint.z) {
+          const farPoint = camera.position
+            .clone()
+            .add(direction.clone().multiplyScalar(20));
+          targetPoint.set(farPoint.x, 0, farPoint.z);
+        }
+
+        console.log(
+          `Meteor target: ${targetPoint.x}, ${targetPoint.y}, ${targetPoint.z}`
+        );
+
+        // 고유 ID 생성
+        const meteorId = `meteor-${Date.now()}`;
+
+        // 이펙트 및 데미지 영역 함수
+        const handleAreaDamage = (position, radius, damage) => {
+          console.log(
+            `Meteor explosion at ${position.x}, ${position.y}, ${position.z}`
+          );
+          console.log(`Area damage: radius ${radius}, damage ${damage}`);
+
+          // 고유 ID 생성 (이펙트용, 타임스탬프로 고유성 보장)
+          const effectId = `effect-${meteorId}-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+          // 폭발 이펙트 생성
+          const meteorEffect = (
+            <FireBallEffect
+              key={effectId}
+              position={position}
+              scale={3}
+              duration={2000}
+              onComplete={() => {
+                // 효과가 끝나면 해당 효과만 제거
+                setEffects((prev) => prev.filter((e) => e.id !== effectId));
+              }}
+            />
+          );
+
+          // 디버그용 데미지 범위 시각화 ID
+          const debugId = `debug-damage-${meteorId}-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 9)}`;
+          // 데미지 범위 시각화 생성
+          const damageVisual = (
+            <DamageRadiusDebug
+              key={debugId}
+              position={position}
+              radius={radius}
+              duration={3000} // 3초 동안 표시
+            />
+          );
+
+          // 효과를 상태에 추가
+          setEffects((prev) => [
+            ...prev,
+            { id: effectId, element: meteorEffect },
+          ]);
+          // 데미지 범위 시각화 추가
+          setDamageDebugVisuals((prev) => [
+            ...prev,
+            { id: debugId, element: damageVisual },
+          ]);
+        };
+
+        // 메테오 제거 함수
+        const handleRemove = () => {
+          console.log(`Removing meteor: ${meteorId}`);
+          setMeteors((prev) => prev.filter((m) => m.id !== meteorId));
+        };
+
+        // 메테오 생성 - 목적지 기반으로 변경
+        const meteor = (
+          <Meteor
+            key={meteorId}
+            targetPosition={targetPoint}
+            height={40}
+            spreadRadius={5} // 목표 지점 주변 2미터 내에 랜덤하게 떨어짐
+            velocity={40}
+            lifespan={5000}
+            explosionRadius={8}
+            explosionDamage={100}
+            onAreaDamage={handleAreaDamage}
+            onRemove={handleRemove}
+          />
+        );
+
+        // 메테오를 상태에 추가
+        setMeteors((prev) => [...prev, { id: meteorId, element: meteor }]);
+      }
     };
 
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
+    // 우클릭 방지 (컨텍스트 메뉴 방지)
+    const preventContextMenu = (e) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener("mousedown", handleClick);
+    window.addEventListener("contextmenu", preventContextMenu);
+
+    return () => {
+      window.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("contextmenu", preventContextMenu);
+    };
   }, [camera]);
 
   return (
@@ -227,6 +396,15 @@ export const World: React.FC = () => {
 
       {/* 발사된 파이어볼 렌더링 */}
       {fireballs.map((fireball) => fireball.element)}
+
+      {/* 발사된 메테오 렌더링 */}
+      {meteors.map((meteor) => meteor.element)}
+
+      {/* 시각 효과 렌더링 */}
+      {effects.map((effect) => effect.element)}
+
+      {/* 데미지 범위 디버그 시각화 */}
+      {damageDebugVisuals.map((debug) => debug.element)}
 
       {/* 충돌 테스트용 박스들 */}
       {collisionBoxes.map((box, index) => (
