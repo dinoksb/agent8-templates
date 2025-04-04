@@ -1,4 +1,10 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { animated } from "@react-spring/three";
 import {
@@ -117,58 +123,66 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
   const internalMaterialRef = useRef<ShaderMaterial>(null);
   const materialRef = externalMaterialRef || internalMaterialRef;
   const [opacity, setOpacity] = useState(1);
-  const [currentScale, setCurrentScale] = useState(scale);
+  const [currentScale] = useState(scale);
   const [isVisible, setIsVisible] = useState(true);
   const timeRef = useRef(0);
   const { camera } = useThree();
 
   // 빌보드 계산에 사용할 임시 벡터들 (성능 최적화)
-  const tempVectors = useMemo(() => ({
-    dirToCam: new Vector3(),
-    worldUp: new Vector3(0, 1, 0),
-    right: new Vector3(),
-    up: new Vector3(),
-    rotationMatrix: new Matrix4(),
-    quaternion: new Quaternion(),
-    zAxis: new Vector3(0, 0, 1),
-    rotationQuat: new Quaternion(),
-    offsetPosition: new Vector3(),
-  }), []);
+  const tempVectors = useMemo(
+    () => ({
+      dirToCam: new Vector3(),
+      worldUp: new Vector3(0, 1, 0),
+      right: new Vector3(),
+      up: new Vector3(),
+      rotationMatrix: new Matrix4(),
+      quaternion: new Quaternion(),
+      zAxis: new Vector3(0, 0, 1),
+      rotationQuat: new Quaternion(),
+      offsetPosition: new Vector3(),
+    }),
+    []
+  );
 
   // 셰이더 머티리얼 프롭스
-  const shaderMaterialProps = useMemo(() => ({
-    vertexShader,
-    fragmentShader,
-    uniforms: {
-      color: { value: color },
-      opacity: { value: opacity },
-      time: { value: 0 },
-      resolution: { value: new Vector2(window.innerWidth, window.innerHeight) },
-      invModelMatrix: { value: new Matrix4() },
-      scale: { value: new Vector3(1, 1, 1) },
-      ...uniforms,
-    },
-    transparent: true,
-    side: DoubleSide,
-    blending: blending as Blending,
-  }), [vertexShader, fragmentShader, color, opacity, uniforms, blending]);
+  const shaderMaterialProps = useMemo(
+    () => ({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        color: { value: color },
+        opacity: { value: opacity },
+        time: { value: 0 },
+        resolution: {
+          value: new Vector2(window.innerWidth, window.innerHeight),
+        },
+        invModelMatrix: { value: new Matrix4() },
+        scale: { value: new Vector3(1, 1, 1) },
+        ...uniforms,
+      },
+      transparent: true,
+      side: DoubleSide,
+      blending: blending as Blending,
+    }),
+    [vertexShader, fragmentShader, color, opacity, uniforms, blending]
+  );
 
   // Store quaternion for rotation based on normal vector
   const normalRotationRef = useRef<Quaternion | null>(null);
 
   /**
-   * 노멀 벡터 방향으로 회전 계산 
+   * 노멀 벡터 방향으로 회전 계산
    */
   useEffect(() => {
     if (!normal) return;
-    
+
     const quaternion = new Quaternion();
     quaternion.setFromUnitVectors(
-      tempVectors.worldUp, 
+      tempVectors.worldUp,
       normal.clone().normalize()
     );
     normalRotationRef.current = quaternion;
-    
+
     if (meshRef.current) {
       meshRef.current.quaternion.copy(quaternion);
     }
@@ -181,30 +195,27 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
   const updateBillboard = useCallback(() => {
     if (!meshRef.current) return;
 
-    const { dirToCam, worldUp, right, up, rotationMatrix, quaternion, zAxis } = tempVectors;
+    const { dirToCam, worldUp, right, up, rotationMatrix, quaternion, zAxis } =
+      tempVectors;
 
     // 카메라에서 메시까지의 방향 벡터 계산
     dirToCam.copy(camera.position).sub(meshRef.current.position);
-    
+
     // 오른쪽 벡터 계산 (방향 벡터와 월드 업 벡터의 외적)
     right.crossVectors(dirToCam, worldUp).normalize();
-    
+
     // 위쪽 벡터 재계산 (오른쪽 벡터와 방향 벡터의 외적)
     up.crossVectors(right, dirToCam).normalize();
-    
+
     // 세 축을 이용하여 회전 행렬 생성
-    rotationMatrix.makeBasis(
-      right,
-      up,
-      dirToCam.normalize().negate()
-    );
-    
+    rotationMatrix.makeBasis(right, up, dirToCam.normalize().negate());
+
     // 회전 행렬에서 쿼터니언 추출
     quaternion.setFromRotationMatrix(rotationMatrix);
-    
+
     // 메시에 쿼터니언 적용
     meshRef.current.quaternion.copy(quaternion);
-    
+
     // Z축 회전 적용 (rotation 파라미터가 있는 경우)
     if (rotation) {
       const zRotation = tempVectors.rotationQuat;
@@ -218,9 +229,9 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
    */
   const updateNormalRotation = useCallback(() => {
     if (!meshRef.current || !normalRotationRef.current) return;
-    
+
     meshRef.current.quaternion.copy(normalRotationRef.current);
-    
+
     if (rotation) {
       const rotationQuat = tempVectors.rotationQuat;
       rotationQuat.setFromEuler(rotation);
@@ -241,10 +252,10 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
    */
   const updateUniforms = useCallback(() => {
     if (!materialRef.current) return;
-    
+
     materialRef.current.uniforms.time.value = timeRef.current;
     materialRef.current.uniforms.opacity.value = opacity;
-  }, [opacity]);
+  }, [opacity, materialRef]);
 
   // 프레임마다 실행되는 업데이트 로직
   useFrame((_, delta) => {
@@ -268,25 +279,6 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
     }
   });
 
-  /**
-   * 애니메이션 키프레임에서 특정 시점의 값을 계산합니다.
-   */
-  const calculateFromKeyframes = useCallback((
-    keyframes: AnimationKeyframes,
-    baseValue: number,
-    progress: number
-  ): number => {
-    const { start, mid, end } = keyframes;
-    
-    if (progress < 0.5) {
-      const t = progress * 2;
-      return baseValue * (start + (mid - start) * t);
-    } else {
-      const t = (progress - 0.5) * 2;
-      return baseValue * (mid + (end - mid) * t);
-    }
-  }, []);
-
   // 애니메이션 및 수명 관리
   useEffect(() => {
     if (!meshRef.current) return;
@@ -298,29 +290,27 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      // 스케일 애니메이션
-      if (scaleAnimation) {
-        const newScale = calculateFromKeyframes(scaleAnimation, scale, progress);
-        setCurrentScale(newScale);
+      // ✨ 등장-유지-사라짐 알파 계산
+      const fadeRatio = 0.3; // 앞/뒤 30%를 fade로 사용
+      let newOpacity = 1;
+
+      if (progress < fadeRatio) {
+        newOpacity = progress / fadeRatio; // fade-in
+      } else if (progress > 1 - fadeRatio) {
+        newOpacity = (1 - progress) / fadeRatio; // fade-out
+      } else {
+        newOpacity = 1.0; // 유지
       }
 
-      // 불투명도 애니메이션
-      if (opacityAnimation) {
-        const newOpacity = calculateFromKeyframes(opacityAnimation, 1, progress);
-        setOpacity(newOpacity);
-      }
-
-      // 페이드 아웃 효과
-      if (fadeOut && progress > 0.7) {
-        const fadeProgress = (progress - 0.7) / 0.3;
-        setOpacity((prev) => Math.max(0, prev * (1 - fadeProgress)));
-      }
+      setOpacity(newOpacity); // 내부 상태 업데이트
 
       if (progress < 1) {
         animationFrameId = requestAnimationFrame(updateEffect);
       } else {
-        setIsVisible(false);
-        onComplete?.();
+        if (newOpacity === 0 || newOpacity < 1) {
+          setIsVisible(false);
+          onComplete?.();
+        }
       }
     };
 
@@ -329,12 +319,20 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [duration, scaleAnimation, opacityAnimation, fadeOut, scale, calculateFromKeyframes, onComplete]);
+  }, [
+    duration,
+    scaleAnimation,
+    opacityAnimation,
+    fadeOut,
+    scale,
+    onComplete,
+    materialRef,
+  ]);
 
   // 윈도우 리사이즈 핸들러 (디바운스 적용)
   useEffect(() => {
     let resizeTimeoutId: ReturnType<typeof setTimeout>;
-    
+
     const handleResize = () => {
       clearTimeout(resizeTimeoutId);
       resizeTimeoutId = setTimeout(() => {
@@ -348,7 +346,7 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
     };
 
     window.addEventListener("resize", handleResize);
-    
+
     return () => {
       window.removeEventListener("resize", handleResize);
       clearTimeout(resizeTimeoutId);
@@ -368,15 +366,40 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
   // 다중 평면 렌더링을 위한 설정
   const planes = [
     // 기본 평면 - 가장 큰 사이즈로 배경 역할
-    { position: [0, 0, -0.005] as const, rotation: [0, 0, 0] as const, size: [1.05, 1.05] as [number, number], factor: -1 },
+    {
+      position: [0, 0, -0.005] as const,
+      rotation: [0, 0, 0] as const,
+      size: [1.05, 1.05] as [number, number],
+      factor: -1,
+    },
     // X축 90도 회전 - 약간 작은 사이즈
-    { position: [0, 0, 0] as const, rotation: [Math.PI / 2, 0, 0] as const, size: [0.98, 0.98] as [number, number], factor: -2 },
+    {
+      position: [0, 0, 0] as const,
+      rotation: [Math.PI / 2, 0, 0] as const,
+      size: [0.98, 0.98] as [number, number],
+      factor: -2,
+    },
     // Y축 90도 회전 - 약간 작은 사이즈
-    { position: [0, 0, 0] as const, rotation: [0, Math.PI / 2, 0] as const, size: [0.99, 0.99] as [number, number], factor: -3 },
+    {
+      position: [0, 0, 0] as const,
+      rotation: [0, Math.PI / 2, 0] as const,
+      size: [0.99, 0.99] as [number, number],
+      factor: -3,
+    },
     // 대각선 #1 (45도 회전) - 더 작은 사이즈
-    { position: [0, 0, 0.002] as const, rotation: [0, Math.PI / 4, Math.PI / 4] as const, size: [0.92, 0.92] as [number, number], factor: -4 },
+    {
+      position: [0, 0, 0.002] as const,
+      rotation: [0, Math.PI / 4, Math.PI / 4] as const,
+      size: [0.92, 0.92] as [number, number],
+      factor: -4,
+    },
     // 대각선 #2 (-45도 회전) - 더 작은 사이즈
-    { position: [0, 0, 0.002] as const, rotation: [0, -Math.PI / 4, Math.PI / 4] as const, size: [0.9, 0.9] as [number, number], factor: -5 },
+    {
+      position: [0, 0, 0.002] as const,
+      rotation: [0, -Math.PI / 4, Math.PI / 4] as const,
+      size: [0.9, 0.9] as [number, number],
+      factor: -5,
+    },
   ];
 
   // 셰이더 속성 수정
@@ -407,26 +430,27 @@ export const ShaderEffect: React.FC<ShaderEffectProps> = ({
         </mesh>
 
         {/* 나머지 평면들은 같은 셰이더 머티리얼 속성을 공유하지만 참조는 필요 없음 */}
-        {volume && planes.slice(1).map((plane, index) => (
-          <mesh 
-            key={index + 1}
-            position={new Vector3(...plane.position)}
-            rotation={new Euler(...plane.rotation)}
-          >
-            <planeGeometry args={plane.size} />
-            <shaderMaterial
-              args={[
-                {
-                  ...modifiedShaderProps,
-                  depthWrite: false,
-                  polygonOffset: true,
-                  polygonOffsetFactor: plane.factor,
-                  polygonOffsetUnits: plane.factor,
-                },
-              ]}
-            />
-          </mesh>
-        ))}
+        {volume &&
+          planes.slice(1).map((plane, index) => (
+            <mesh
+              key={index + 1}
+              position={new Vector3(...plane.position)}
+              rotation={new Euler(...plane.rotation)}
+            >
+              <planeGeometry args={plane.size} />
+              <shaderMaterial
+                args={[
+                  {
+                    ...modifiedShaderProps,
+                    depthWrite: false,
+                    polygonOffset: true,
+                    polygonOffsetFactor: plane.factor,
+                    polygonOffsetUnits: plane.factor,
+                  },
+                ]}
+              />
+            </mesh>
+          ))}
       </group>
     </animated.mesh>
   );

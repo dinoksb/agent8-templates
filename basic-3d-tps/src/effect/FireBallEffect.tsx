@@ -2,8 +2,8 @@ import { Color, Vector2 } from "three";
 import { AdditiveBlending } from "three";
 import { Vector3 } from "three";
 import { ShaderEffect } from "./ShaderEffect";
-import fragmentShader from "../../public/shaders/fire/fire.frag.glsl";
-import vertexShader from "../../public/shaders/fire/fire.vert.glsl";
+import fragmentShader from "../shaders/fire/fire.frag.glsl";
+import vertexShader from "../shaders/fire/fire.vert.glsl";
 import { useMemo } from "react";
 
 export const FireBallEffect: React.FC<{
@@ -14,11 +14,21 @@ export const FireBallEffect: React.FC<{
   disableBillboard?: boolean;
   volume?: boolean;
   onComplete?: () => void;
-}> = ({ position, scale, normal, duration, disableBillboard = false, volume = true, onComplete }) => {
-
-  const resolutionUniform = useMemo(() => ({
-    value: new Vector2(window.innerWidth, window.innerHeight)
-  }), [])
+}> = ({
+  position,
+  scale,
+  normal,
+  duration,
+  disableBillboard = false,
+  volume = true,
+  onComplete,
+}) => {
+  const resolutionUniform = useMemo(
+    () => ({
+      value: new Vector2(window.innerWidth, window.innerHeight),
+    }),
+    []
+  );
 
   return (
     <ShaderEffect

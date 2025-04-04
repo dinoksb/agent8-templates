@@ -1,6 +1,7 @@
 uniform vec2 resolution;
 uniform float time;
 uniform float opacity;
+uniform float duraion;
 varying vec2 vUv;
 
 float customSnoise(vec3 uv, float res) {
@@ -79,17 +80,8 @@ void main() {
     }
 
     // 시간 기반 투명도 애니메이션
-    float timeBasedOpacity = 0.0;
 
-    if (time < 0.5) {
-        timeBasedOpacity = smoothstep(0.0, 0.5, time);
-    } else if (time < 1.5) {
-        timeBasedOpacity = 1.0;
-    } else if (time < 2.0) {
-        timeBasedOpacity = 1.0 - smoothstep(1.5, 2.0, time);
-    }
-
-    alpha *= timeBasedOpacity;
+    alpha *= opacity;
 
     gl_FragColor = vec4(fireColor, alpha);
 }
