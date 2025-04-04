@@ -12,7 +12,7 @@ export const GameScene: React.FC = () => {
           (e.target as HTMLCanvasElement).requestPointerLock();
         }}
       >
-        <Physics debug={true} gravity={[0, -9.81, 0]}>
+        <Physics debug={false} gravity={[0, -9.81, 0]}>
           <World />
         </Physics>
       </Canvas>

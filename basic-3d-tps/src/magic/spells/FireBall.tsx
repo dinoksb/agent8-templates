@@ -13,8 +13,6 @@ import {
 export interface FireBallProps
   extends Omit<ProjectileMagicProps, "element" | "visualComponent"> {
   damage?: number;
-  burnChance?: number;
-  burnDuration?: number;
 }
 
 /**
@@ -26,14 +24,12 @@ const FireBall: React.FC<FireBallProps> = ({
   position,
   direction,
   velocity = 25,
-  duration = 3000,
+  duration = 1500,
   damage = 20,
-  burnChance = 0.7,
-  burnDuration = 3000,
   size = [0.3, 0.3, 0.3],
   onHit,
   onComplete,
-  debug = true,
+  debug = false,
 }) => {
   // 충돌 시 효과와 데미지 처리를 위한 핸들러
   const handleHit = (
@@ -55,18 +51,17 @@ const FireBall: React.FC<FireBallProps> = ({
     />
   );
 
-  // 파이어볼 효과 설정
+  //   파이어볼 효과 설정
   const effects = [
     {
       type: MagicEffectType.DAMAGE,
-      value: damage,
+      damage: damage,
     },
     {
       type: MagicEffectType.BURN,
-      value: damage * 0.5,
-      duration: burnDuration,
+      damage: damage * 0.5,
+      duration: 2000,
       interval: 1000,
-      chance: burnChance,
     },
   ];
 

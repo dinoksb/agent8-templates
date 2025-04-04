@@ -270,12 +270,7 @@ const ProjectileMagic = forwardRef<ProjectileMagicHandle, ProjectileMagicProps>(
           {/* 충돌 감지용 메쉬 */}
           <mesh>
             <boxGeometry args={size} />
-            <meshStandardMaterial
-              color="red"
-              wireframe
-              transparent
-              opacity={debug ? 1 : 0}
-            />
+            <meshStandardMaterial color="red" visible={debug} />
           </mesh>
         </RigidBody>
 
@@ -286,7 +281,7 @@ const ProjectileMagic = forwardRef<ProjectileMagicHandle, ProjectileMagicProps>(
           })}
 
         {/* 디버그 정보 */}
-        {debug && (
+        {/* {debug && (
           <group
             position={[
               currentPositionRef.current.x,
@@ -327,7 +322,7 @@ const ProjectileMagic = forwardRef<ProjectileMagicHandle, ProjectileMagicProps>(
               </line>
             )}
           </group>
-        )}
+        )} */}
       </>
     );
   }

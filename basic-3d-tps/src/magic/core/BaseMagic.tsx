@@ -48,11 +48,10 @@ export enum MagicCastType {
  */
 export interface MagicEffect {
   type: MagicEffectType; // 효과 타입
-  value: number; // 효과 강도/값
+  damage: number; // 효과 강도/값
   duration?: number; // 지속 시간 (ms)
   interval?: number; // 적용 간격 (Dot 등에 사용)
   radius?: number; // 효과 범위 (반경)
-  chance?: number; // 효과 발동 확률 (0-1)
 }
 
 /**
