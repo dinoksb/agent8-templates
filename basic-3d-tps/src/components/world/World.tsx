@@ -5,8 +5,8 @@ import { useThree, useFrame } from "@react-three/fiber";
 import { CharacterResource } from "../../types/characterResource";
 import { Character } from "../character/Player";
 import * as THREE from "three";
-import FireBall from "../../projectiles/FireBall";
-import Meteor from "../../projectiles/Meteor";
+import FireBall from "../../magic/spells/FireBall";
+import Meteor from "../../magic/spells/Meteor";
 import { FireBallEffect } from "../../effect/FireBallEffect";
 
 // 데미지 범위 디버그 시각화 컴포넌트
@@ -201,15 +201,43 @@ export const World: React.FC = () => {
         // 발사 위치 계산 (플레이어 위치 + 높이 + 약간 앞으로 오프셋)
         const spawnPosition: [number, number, number] = [
           playerPosition.x + direction.x * 0.5,
-          playerPosition.y + 1.5, // 눈 높이
+          playerPosition.y + 2, // 눈 높이
           playerPosition.z + direction.z * 0.5,
         ];
 
         // 고유 ID 생성
         const fireballId = `fireball-${Date.now()}`;
 
-        // 파이어볼 제거 함수
-        const handleRemove = () => {
+        // 파이어볼 충돌 시 효과 함수
+        const handleHit = (target, point) => {
+          console.log(`Fireball ${fireballId} hit:`, target);
+
+          // 충돌 지점에 효과 생성
+          const hitEffectId = `hit-effect-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+          const hitEffect = (
+            <FireBallEffect
+              key={hitEffectId}
+              position={point}
+              scale={1.5}
+              duration={1000}
+              onComplete={() => {
+                console.log(`Removing hit effect: ${hitEffectId}`);
+                setEffects((prev) => prev.filter((e) => e.id !== hitEffectId));
+              }}
+            />
+          );
+
+          // 효과 추가
+          setEffects((prev) => [
+            ...prev,
+            { id: hitEffectId, element: hitEffect },
+          ]);
+        };
+
+        // 파이어볼 완료 시 제거 함수
+        const handleComplete = () => {
           console.log(`Removing fireball: ${fireballId}`);
           setFireballs((prev) => prev.filter((fb) => fb.id !== fireballId));
         };
@@ -221,7 +249,9 @@ export const World: React.FC = () => {
             position={spawnPosition}
             direction={direction}
             velocity={25}
-            onRemove={handleRemove}
+            damage={30}
+            onHit={handleHit}
+            onComplete={handleComplete}
           />
         );
 
@@ -323,11 +353,11 @@ export const World: React.FC = () => {
             height={40}
             spreadRadius={5} // 목표 지점 주변 2미터 내에 랜덤하게 떨어짐
             velocity={40}
-            lifespan={5000}
+            duration={5000}
             explosionRadius={8}
             explosionDamage={100}
             onAreaDamage={handleAreaDamage}
-            onRemove={handleRemove}
+            onComplete={handleRemove}
           />
         );
 
