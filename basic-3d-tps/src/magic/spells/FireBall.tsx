@@ -1,6 +1,7 @@
 import React from "react";
 import * as THREE from "three";
 import { FireBallEffect } from "../../effect/FireBallEffect";
+import { LightningBallEffect } from "../../effect/LightningBallEffect";
 import ProjectileMagic from "../core/ProjectileMagic";
 import {
   MagicCastType,
@@ -14,12 +15,15 @@ import {
 export interface FireBallProps
   extends Omit<ProjectileMagicProps, "element" | "visualComponent"> {
   damage?: number;
+  useLightningEffect?: boolean;
+  lightningJsonPath?: string;
 }
 
 /**
  * 파이어볼 마법 컴포넌트
  * - 기본 투사체 마법
  * - 충돌 시 화상 효과 추가 가능
+ * - Three.Quarks 라이브러리를 이용한 번개 효과 추가 가능
  */
 const FireBall: React.FC<FireBallProps> = ({
   position,
@@ -31,6 +35,8 @@ const FireBall: React.FC<FireBallProps> = ({
   onHit,
   onComplete,
   debug = false,
+  useLightningEffect = true,
+  lightningJsonPath = "/assets/particles/Cartoon Lightning Ball.json",
 }) => {
   // 충돌 시 효과와 데미지 처리를 위한 핸들러
   const handleHit = (
@@ -45,12 +51,22 @@ const FireBall: React.FC<FireBallProps> = ({
 
   // 파이어볼 이펙트 컴포넌트
   const fireBallVisual = (
-    <FireBallEffect
-      position={new THREE.Vector3(0, 0, 0)} // 위치는 ProjectileMagic에서 업데이트
-      scale={1}
-      duration={duration}
-      disableBillboard={false}
-    />
+    <>
+      <FireBallEffect
+        position={new THREE.Vector3(0, 0, 0)} // 위치는 ProjectileMagic에서 업데이트
+        scale={1}
+        duration={duration}
+        disableBillboard={false}
+      />
+      {useLightningEffect && (
+        <LightningBallEffect
+          position={[0, 0, 0]}
+          scale={1.2}
+          duration={duration}
+          jsonPath={lightningJsonPath}
+        />
+      )}
+    </>
   );
 
   //   파이어볼 효과 설정

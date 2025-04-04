@@ -15,6 +15,7 @@ import FireBall from "../../magic/spells/FireBall";
 import Meteor from "../../magic/spells/Meteor";
 import { FireBallEffect } from "../../effect/FireBallEffect";
 import CameraRaycast from "../raycast/CameraRaycast";
+import { BatchedRenderer, QuarksLoader, QuarksUtil } from "three.quarks";
 
 // ======================= 시각 효과 컴포넌트 =======================
 
@@ -121,7 +122,36 @@ export const World: React.FC = () => {
   >([]);
 
   // 카메라 참조
-  const { camera } = useThree();
+  const { camera, scene } = useThree();
+
+  const [batchRenderer, setBatchRenderer] = useState(new BatchedRenderer());
+  const jsonURL = "/assets/particles/Cartoon Lightning Ball.json";
+  useEffect(() => {
+    const loader = new QuarksLoader();
+    loader.setCrossOrigin("");
+    loader.load(
+      jsonURL,
+      (obj) => {
+        // the API uses manuel loading because users may need to
+        // store the VFX somewhere to reuse it later.
+        QuarksUtil.addToBatchRenderer(obj, batchRenderer);
+        scene.add(obj);
+      },
+      () => {},
+      () => {}
+    );
+    scene.add(batchRenderer);
+    batchRenderer.position.set(0, 1, 0);
+    // batchSystem.scale.set(1, 1, 1);
+
+    return () => {
+      scene.remove(batchRenderer);
+    };
+  }, [scene, jsonURL]);
+
+  useFrame((state, delta) => {
+    batchRenderer.update(delta);
+  });
 
   // ======================= 충돌 테스트 박스 설정 =======================
 
