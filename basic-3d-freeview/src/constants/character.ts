@@ -15,6 +15,8 @@ export const CharacterState: { [key: string]: AnimationType } = {
   HIT: 'HIT',
   /** ATTACK HIT */
   DIE: 'DIE',
+  /** FIREBALL SPELL */
+  FIREBALL: 'FIREBALL',
 };
 
 export type CharacterState = (typeof CharacterState)[keyof typeof CharacterState];

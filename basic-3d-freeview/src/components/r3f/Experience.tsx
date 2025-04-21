@@ -8,6 +8,9 @@ import { useEffect } from 'react';
 import { keyboardMap } from '../../constants/controls';
 import { Floor } from './Floor';
 import { Player, PlayerRef } from './Player';
+import { FireballManager } from '../spells/FireBallManager';
+import * as THREE from 'three';
+
 export function Experience() {
   const controllerRef = useRef<ControllerHandle>(null);
   const playerRef = useRef<PlayerRef>(null);
@@ -34,6 +37,34 @@ export function Experience() {
       }
     }
   }, [playerRef.current?.boundingBox]);
+
+  // 플레이어 위치를 가져오는 함수
+  const getPlayerPosition = () => {
+    if (!controllerRef.current?.rigidBodyRef?.current) {
+      return new THREE.Vector3(0, 0, 0);
+    }
+
+    const translation = controllerRef.current.rigidBodyRef.current.translation();
+    return new THREE.Vector3(translation.x, translation.y, translation.z);
+  };
+
+  // 플레이어가 바라보는 방향을 가져오는 함수
+  const getPlayerDirection = () => {
+    if (!controllerRef.current?.rigidBodyRef?.current) {
+      return new THREE.Vector3(0, 0, 1);
+    }
+
+    const rotation = controllerRef.current.rigidBodyRef.current.rotation();
+    const quaternion = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+    return new THREE.Vector3(0, 0, 1).applyQuaternion(quaternion).normalize();
+  };
+
+  // 파이어볼 충돌 처리 콜백
+  const handleFireballHit = (payload, position) => {
+    console.log('파이어볼 충돌:', payload, position);
+    // 충돌 효과를 구현할 수 있습니다.
+    return true; // true를 반환하면 파이어볼이 제거됩니다.
+  };
 
   return (
     <>
@@ -71,6 +102,9 @@ export function Experience() {
           >
             <Player ref={playerRef} initState={CharacterState.IDLE} controllerRef={controllerRef} targetHeight={targetHeight} />
           </FreeViewController>
+
+          {/* 파이어볼 매니저 */}
+          <FireballManager getPlayerPosition={getPlayerPosition} getPlayerDirection={getPlayerDirection} onHit={handleFireballHit} />
         </KeyboardControls>
 
         {/* Floor */}
