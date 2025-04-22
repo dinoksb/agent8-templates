@@ -2,14 +2,14 @@ import React, { useRef, useMemo, useCallback, useImperativeHandle, forwardRef } 
 import * as THREE from 'three';
 import { useKeyboardControls } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { CharacterState } from '../../constants/character';
-import Assets from '../../assets.json';
+import { CharacterState } from '../../../constants/character';
+import Assets from '../../../assets.json';
 import { GameServer } from '@agent8/gameserver';
 import { Vector3, Quaternion } from 'three';
 import throttle from 'lodash/throttle';
-import { PlayerInputs, PlayerRef } from '../../types/player';
-import { EffectType } from '../../types';
-import { createFireBallEffectConfig } from './effects/FireBallEffectController';
+import { PlayerInputs, PlayerRef } from '../types/player';
+import { EffectType } from '../types/effect';
+import { createBulletEffectConfig } from '../effects/BulletEffectController';
 import { AnimationConfig, AnimationConfigMap, CharacterRenderer, CharacterRendererRef, CharacterResource, ControllerHandle } from 'vibe-starter-3d';
 
 /**
@@ -230,7 +230,7 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(
         const rotation = rigidBody.rotation();
         const quaternion = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
         const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(quaternion).normalize();
-        onCastMagic(EffectType.FIREBALL, createFireBallEffectConfig(startPosition, direction));
+        onCastMagic(EffectType.BULLET, createBulletEffectConfig({ startPosition, direction }));
       } else {
         console.warn('Player tried to cast magic, but onCastMagic prop is missing!');
       }

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Environment, KeyboardControls } from '@react-three/drei';
 import { Player } from './Player';
-import { PlayerRef } from '../../types/player';
-import { CharacterState, DEFAULT_HEIGHT } from '../../constants/character';
-import { keyboardMap } from '../../constants/controls';
+import { PlayerRef } from '../types/player';
+import { CharacterState, DEFAULT_HEIGHT } from '../../../constants/character';
+import { keyboardMap } from '../../../constants/controls';
 import { Floor } from './Floor';
 import { useGameServer } from '@agent8/gameserver';
 import { Vector3 } from 'three';
-import { useEffectStore } from '../../store/effectStore';
+import { useEffectStore } from '../store/effectStore';
 import { ControllerHandle, FreeViewController } from 'vibe-starter-3d';
 import { useFrame } from '@react-three/fiber';
 

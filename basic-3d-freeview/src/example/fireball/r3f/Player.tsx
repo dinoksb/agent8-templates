@@ -2,37 +2,15 @@ import React, { useRef, useMemo, useCallback, useImperativeHandle, forwardRef } 
 import * as THREE from 'three';
 import { useKeyboardControls } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { CharacterState } from '../constants/character';
-import Assets from '../assets.json';
+import { CharacterState } from '../../../constants/character';
+import Assets from '../../../assets.json';
 import { GameServer } from '@agent8/gameserver';
 import { Vector3, Quaternion } from 'three';
 import throttle from 'lodash/throttle';
-import { EffectType } from '../example/types/effect';
+import { PlayerInputs, PlayerRef } from '../types/player';
+import { EffectType } from '../types';
 import { createFireBallEffectConfig } from './effects/FireBallEffectController';
 import { AnimationConfig, AnimationConfigMap, CharacterRenderer, CharacterRendererRef, CharacterResource, ControllerHandle } from 'vibe-starter-3d';
-
-/**
- * Player input parameters for action determination
- */
-interface PlayerInputs {
-  isRevive: boolean;
-  isDying: boolean;
-  isPunching: boolean;
-  isHit: boolean;
-  isJumping: boolean;
-  isMoving: boolean;
-  isRunning: boolean;
-  currentVelY: number;
-}
-
-/**
- * Player ref interface
- */
-export interface PlayerRef {
-  /** Bounding box of the character model */
-  boundingBox: THREE.Box3 | null;
-}
-
 
 /**
  * Network synchronization constants.
