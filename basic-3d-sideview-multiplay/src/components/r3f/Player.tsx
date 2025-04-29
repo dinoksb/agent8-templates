@@ -9,8 +9,7 @@ import throttle from 'lodash/throttle';
 import { PlayerInputs, PlayerRef } from '../../types/player';
 import { EffectType } from '../../types';
 import { createFireBallEffectConfig } from './effects/FireBallEffectController';
-import { AnimationConfig, AnimationConfigMap, CharacterRenderer, CharacterRendererRef, CharacterResource, ControllerHandle } from 'vibe-starter-3d';
-import { useGame } from 'vibe-starter-3d-ctrl';
+import { AnimationConfig, AnimationConfigMap, CharacterRenderer, CharacterRendererRef, CharacterResource, ControllerHandle, useGame } from 'vibe-starter-3d';
 import Assets from '../../assets.json';
 
 /**
@@ -137,7 +136,7 @@ function usePlayerAnimations(currentStateRef: React.MutableRefObject<CharacterSt
  * Manages inputs, state transitions, animations, and network synchronization.
  */
 export const Player = forwardRef<PlayerRef, PlayerProps>(
-  ({ initialState = CharacterState.IDLE, controllerRef, targetHeight = 1.6, spawnEffect: onCastMagic, characterKey = 'y-bot.glb', server }, ref) => {
+  ({ initialState = CharacterState.IDLE, controllerRef, targetHeight = 1.6, spawnEffect: onCastMagic, characterKey = 'knight', server }, ref) => {
     const currentStateRef = useRef<CharacterState>(initialState);
     const [, getKeyboardInputs] = useKeyboardControls();
     const { determinePlayerState } = usePlayerStates();
@@ -286,7 +285,7 @@ export const Player = forwardRef<PlayerRef, PlayerProps>(
     // Memoized character resource loading.
     const characterResource: CharacterResource = useMemo(() => {
       const characterData = (Assets.characters as Record<string, { url: string }>)[characterKey];
-      const characterUrl = characterData?.url || Assets.characters['y-bot.glb'].url;
+      const characterUrl = characterData?.url || Assets.characters['knight'].url;
       return {
         name: characterKey,
         url: characterUrl,

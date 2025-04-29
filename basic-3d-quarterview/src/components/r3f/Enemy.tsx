@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useState } from 'react';
 import * as THREE from 'three';
-import { Vector3, ThreeEvent } from '@react-three/fiber';
+import { ThreeEvent } from '@react-three/fiber';
 import { CharacterState, DEFAULT_HEIGHT } from '../../constants/character';
 import { AnimationConfig, AnimationConfigMap, CharacterRenderer, CharacterResource } from 'vibe-starter-3d';
 import { CharacterRendererRef } from 'vibe-starter-3d/dist/src/components/renderers/CharacterRenderer';
@@ -103,7 +103,7 @@ export const Enemy: React.FC<EnemyProps> = ({
   position = [5, 0, 5],
   initState = CharacterState.IDLE,
   targetHeight = DEFAULT_HEIGHT,
-  characterKey = 'zombie.glb',
+  characterKey = 'zombie',
   id = 'enemy-1',
   onHover,
 }) => {
@@ -116,7 +116,7 @@ export const Enemy: React.FC<EnemyProps> = ({
   // Define the character resource with all animations
   const characterResource: CharacterResource = useMemo(() => {
     const characterData = (Assets.characters as Record<string, { url: string }>)[characterKey];
-    const characterUrl = characterData?.url || Assets.characters['zombie.glb'].url;
+    const characterUrl = characterData?.url || Assets.characters['zombie'].url;
 
     return {
       name: 'Enemy Character',

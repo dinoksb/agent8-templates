@@ -1,0 +1,122 @@
+{
+  "characters": {
+    "solider": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/solider.glb"
+    },
+    "gunslinger": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/gunslinger.glb"
+    },
+    "knight": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/knight.glb"
+    },
+    "zombie": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/zombie.glb"
+    },
+    "trump": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/trump.glb"
+    },
+    "space-marine": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/space-marine.glb"
+    },
+    "fallen-angel": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/fallen-angel.glb"
+    },
+    "fantasy-thief": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/fantasy-thief.glb"
+    },
+    "medical-android": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/medical-android.glb"
+    },
+    "necromancer": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/necromancer.glb"
+    },
+    "spartan-soldier": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/spartan-soldier.glb"
+    },
+    "steampunk-inventor": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/steampunk-inventor.glb"
+    },
+    "valkyrie-warrior": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/valkyrie-warrior.glb"
+    },
+    "sd-northern-soldier": {
+      "url": "https://agent8-games.verse8.io/assets/3d/characters/human/sd-northern-soldier.glb"
+    }
+  },
+  "animations": {
+    "idle": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/idle.glb",
+      "description": "Idle"
+    },
+    "walk": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/walk.glb",
+      "description": "Walk"
+    },
+    "run": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/run.glb",
+      "description": "Run"
+    },
+    "jump": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/fall-idle.glb",
+      "description": "Jump"
+    },
+    "punch": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/punch.glb",
+      "description": "Punch"
+    },
+    "melee_attack": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/melee-attack.glb",
+      "description": "Melee Attack"
+    },
+    "aim": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/aimming.glb",
+      "description": "Aim"
+    },
+    "shoot": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/shoot.glb",
+      "description": "Shoot"
+    },
+    "aim_run": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/shoot-run.glb",
+      "description": "Aim Run"
+    },
+    "hit": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/hit.glb",
+      "description": "Hit"
+    },
+    "die": {
+      "url": "https://agent8-games.verse8.io/assets/3d/animations/mixamorig/death.glb",
+      "description": "Die"
+    }
+  },
+  "sprites": {
+    "minecraft": {
+      "url": "https://agent8-games.verse8.io/assets/2d/minecraft/minecraft-tiles.png",
+      "description": "Minecraft style sprites",
+      "size": {
+        "width": 80,
+        "height": 80
+      },
+      "cellSize": {
+        "width": 16,
+        "height": 16
+      }
+    },
+    "dirt": {
+      "url": "https://agent8-games.verse8.io/assets/2d/minecraft/dirt.jpg",
+      "description": "Dirt texture",
+      "size": {
+        "width": 16,
+        "height": 16
+      }
+    },
+    "grass": {
+      "url": "https://agent8-games.verse8.io/assets/2d/minecraft/grass.jpg",
+      "description": "Grass texture",
+      "size": {
+        "width": 16,
+        "height": 16
+      }
+    }
+  }
+}
