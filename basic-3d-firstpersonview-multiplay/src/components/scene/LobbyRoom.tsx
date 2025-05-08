@@ -5,7 +5,7 @@ import { UserState } from '../../types';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Suspense } from 'react';
-import { CharacterPreview } from '../r3f/CharacterPreview';
+import CharacterPreview from '../r3f/CharacterPreview';
 
 /**
  * Lobby room props
@@ -70,7 +70,7 @@ const LobbyRoom: React.FC<LobbyRoomProps> = ({ roomId, onLeaveRoom, server }) =>
       setIsReady(false);
       setSelectedCharacter(null);
     }
-  }, [currentUserState]);
+  }, [currentUserState, selectedCharacter]);
 
   return (
     <div className="relative w-full h-screen bg-gray-100 flex items-center justify-center p-4">

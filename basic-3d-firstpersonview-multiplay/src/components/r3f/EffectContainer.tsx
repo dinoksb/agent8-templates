@@ -3,15 +3,16 @@ import { useGameServer, useRoomState } from '@agent8/gameserver';
 import * as THREE from 'three';
 import { ActiveEffect, EffectType } from '../../types/effect';
 import { useEffectStore, useActiveEffects } from '../../stores/effectStore';
-import { BulletEffectController } from './effects/BulletEffectController';
-import { createExplosionEffectConfig, Explosion } from './effects/Explosion';
 import { Collider, RigidBody } from '@dimforge/rapier3d-compat';
 import { usePlayerStore } from '../../stores/playerStore';
+import { createExplosionEffectConfig } from '../../utils/effectUtils';
+import BulletEffectController from './effects/BulletEffectController';
+import Explosion from './effects/Explosion';
 
 /**
  * Effect container component using Zustand store for effect management.
  */
-export function EffectContainer() {
+function EffectContainer() {
   // Call ALL hooks unconditionally at the top
   const { connected, server, account } = useGameServer();
   const { roomId } = useRoomState();
@@ -38,7 +39,6 @@ export function EffectContainer() {
   // Callback to remove completed effects using the store action
   const handleEffectComplete = useCallback(
     (keyToRemove: number) => {
-      console.log('[EffectContainer] Effect complete:', keyToRemove);
       removeEffect(keyToRemove);
     },
     [removeEffect],
@@ -48,7 +48,6 @@ export function EffectContainer() {
   const handleEffectHit = useCallback(
     (type: EffectType, pos?: THREE.Vector3, rigidBody?: RigidBody, collider?: Collider, sender?: string): boolean => {
       const targetAccount = rigidBody?.userData?.['account'];
-      console.log('[EffectContainer] Effect hit:', targetAccount, sender);
       if (sender && targetAccount) {
         if (targetAccount === sender) return false;
 
@@ -125,3 +124,5 @@ export function EffectContainer() {
   // Render all active effects from the store
   return <>{activeEffects.map(renderEffect)}</>;
 }
+
+export default EffectContainer;

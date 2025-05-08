@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { interactionGroups, RigidBody } from '@react-three/rapier';
-import { CollisionGroup } from 'vibe-starter-3d';
+import { RigidBody } from '@react-three/rapier';
 
 type SimpleObject = {
   position: THREE.Vector3;
@@ -11,7 +10,7 @@ type SimpleObject = {
   color: THREE.Color;
 };
 
-export const Ground = () => {
+const Ground = () => {
   // Generate object data to scatter on the ground (optimized with useMemo)
   const objects = useMemo<SimpleObject[]>(() => {
     const tempObjects: SimpleObject[] = [];
@@ -113,3 +112,5 @@ export const Ground = () => {
     </>
   );
 };
+
+export default Ground;

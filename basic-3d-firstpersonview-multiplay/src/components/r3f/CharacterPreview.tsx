@@ -26,7 +26,7 @@ const idleAnimationConfigMap: Partial<AnimationConfigMap<CharacterState>> = {
 /**
  * CharacterPreview component for rendering a static character preview in IDLE state
  */
-export const CharacterPreview: React.FC<CharacterPreviewProps> = ({ characterUrl }) => {
+const CharacterPreview: React.FC<CharacterPreviewProps> = ({ characterUrl }) => {
   // State is always IDLE for preview
   const currentStateRef = useRef<CharacterState>(CharacterState.IDLE);
 
@@ -47,7 +47,7 @@ export const CharacterPreview: React.FC<CharacterPreviewProps> = ({ characterUrl
     const vector3 = new Vector3();
     characterRendererRef.current?.boundingBox?.getSize(vector3);
     return vector3.y;
-  }, [characterRendererRef.current]);
+  }, [characterRendererRef]);
 
   return (
     <group position={[0, -(characterHeight || 0) / 2, 0]}>
@@ -60,3 +60,5 @@ export const CharacterPreview: React.FC<CharacterPreviewProps> = ({ characterUrl
     </group>
   );
 };
+
+export default CharacterPreview;
