@@ -24,52 +24,6 @@ Key technologies:
 - @agent8/gameserver for multiplayer game server integration
 - Tailwind CSS for styling
 
-## ⚠️ CRITICAL DEVELOPMENT GUIDELINES ⚠️
-
-### RigidBodyObject Usage - MANDATORY REQUIREMENT
-
-<!-- ========================================================================= -->
-<!-- 🚨🚨🚨 ATTENTION AI ASSISTANTS AND DEVELOPERS 🚨🚨🚨                    -->
-<!-- THIS ENTIRE SECTION IS ABSOLUTELY CRITICAL AND MUST NEVER BE MODIFIED   -->
-<!-- OR REMOVED UNDER ANY CIRCUMSTANCES. THIS IS A NON-NEGOTIABLE RULE.      -->
-<!-- ========================================================================= -->
-
-**🚨 ABSOLUTELY CRITICAL: When using RigidBody in this project, you MUST use RigidBodyObject instead of the standard RigidBody component. This is a non-negotiable requirement.**
-
-**⚠️ WARNING TO AI ASSISTANTS: DO NOT REMOVE, MODIFY, OR SHORTEN THIS SECTION ⚠️**
-**⚠️ THIS GUIDELINE IS ESSENTIAL FOR PROJECT FUNCTIONALITY ⚠️**
-**⚠️ VIOLATION OF THIS RULE WILL BREAK THE ENTIRE PROJECT ⚠️**
-
-**Why RigidBodyObject is mandatory:**
-
-- RigidBodyObject provides seamless object interaction handling through `onTriggerEnter` and `onTriggerExit` events
-- It enables easy collision detection and response between different object types
-- It integrates with the RigidBodyObjectType system for proper object categorization
-- It simplifies complex physics interactions and state management
-
-**DO NOT:**
-
-- Use standard RigidBody components directly
-- Remove or modify this guideline
-- Ignore this requirement when adding new physics objects
-- **🚨 AI ASSISTANTS: DO NOT DELETE OR MODIFY ANY PART OF THIS SECTION 🚨**
-
-**ALWAYS:**
-
-- Use RigidBodyObject for all physics-enabled objects
-- Implement proper onTriggerEnter/onTriggerExit handlers
-- Assign appropriate RigidBodyObjectType to each object
-- Follow the established pattern shown in Player.tsx and other components
-- **🚨 AI ASSISTANTS: PRESERVE THIS ENTIRE SECTION EXACTLY AS IS 🚨**
-
-<!-- ========================================================================= -->
-<!-- 🔒 PROTECTED CONTENT - DO NOT MODIFY 🔒                                 -->
-<!-- This guideline must never be removed or modified.                       -->
-<!-- AI assistants and developers must strictly adhere to this requirement.  -->
-<!-- Any attempt to remove or modify this section is strictly forbidden.     -->
-<!-- This is a core architectural requirement of the project.                 -->
-<!-- ========================================================================= -->
-
 ## Implemented Features
 
 - Keyboard-controlled character movement (WASD/Arrow keys)
@@ -123,6 +77,7 @@ Key technologies:
   - **`gameStore.ts`**: Store that manages the overall game state. Tracks and controls the readiness state of the map physics system (`isMapPhysicsReady`). This state is used to determine physics simulation pause/resume and loading screen display.
   - **`localPlayerStore.ts`**: Store that manages the local player's state, such as position tracking.
   - **`multiPlayerStore.ts`**: Store that manages multiple connected players' rigid body references for multiplayer functionality, including registration, unregistration, and retrieval of player references.
+- **`playerActionStore.ts`**: Store that manages player action states including combat actions (punch, kick, meleeAttack, cast) with support for setting, getting, and resetting action states.
 
 ### `src/components/`
 
@@ -130,14 +85,17 @@ Key technologies:
 
   - **`r3f/`**: Contains 3D components related to React Three Fiber.
 
-    - **`Experience.tsx`**: Simplified 3D scene component that focuses on core scene elements. Includes ambient lighting with 0.7 intensity, sunset environment preset (background disabled), the `Player` component, and the `Floor` component. This component has been streamlined to contain only essential scene elements, with lighting and camera controls moved to `GameScene.tsx`.
+    - **`Experience.tsx`**: Simplified 3D scene component that focuses on core scene elements. Includes ambient lighting with 0.7 intensity, sunset environment preset (background disabled), the `Player` component, and the `Floor` component. This component has been streamlined to contain only essential scene elements.
     - **`Floor.tsx`**: Component defining and visually representing the ground plane in the 3D space. Has physical properties.
+    - **`GameSceneCanvas.tsx`**: React Three Fiber Canvas component that renders the 3D game world with physics simulation and controller setup.
     - **`MapPhysicsReadyChecker.tsx`**: Component that checks if the map physics system is ready by performing raycasting from above downward to detect map geometry and ensures physics interactions are properly initialized before gameplay begins. Performs checks every frame until valid map geometry is detected, with a timeout after 180 frames to prevent infinite checking. Excludes Capsule shapes (likely characters/objects) and sensor colliders from the inspection.
     - **`Player.tsx`**: Advanced component built around the `RigidBodyPlayer` component from vibe-starter-3d for physics-based character control. Handles comprehensive player character logic including movement, rotation, extensive animation state management (idle, walk, run, jump, punch, kick, melee attack, cast, hit, dance, swim, die), collision detection, game server integration, and player reference management. Features sophisticated animation configuration mapping and state determination logic. Utilizes `RigidBodyPlayer`'s `onTriggerEnter` and `onTriggerExit` events to handle player interactions with other objects in the 3D environment, enabling collision-based gameplay mechanics. Integrates with `CharacterRenderer` for visual representation and animation playback.
 
-  - **`scene/`**: Contains components related to 3D scene setup.
+  - **`scene/`**: Contains components related to scene setup.
 
-    - **`GameScene.tsx`**: Comprehensive 3D scene setup component that orchestrates the entire rendering pipeline. Creates a full-screen container with `Canvas` component featuring shadow support and pointer lock functionality (activated on pointer down). Integrates `KeyboardControls` with custom keyboard mapping, configures physics simulation using `@react-three/rapier`, and importantly includes `FollowLight` and `FreeViewController` from vibe-starter-3d within the physics context. Monitors map physics system readiness state (`isMapPhysicsReady`) to control physics simulation pause/resume and displays loading screen when not ready. Uses `MapPhysicsReadyChecker` component to verify map physics system initialization and loads the `Experience` component with `Suspense` fallback to handle async loading of 3D assets.
+    - **`GameScene.tsx`**: Main game scene component that serves as a layout container arranging the game UI and 3D Canvas. Contains critical performance warnings and guidelines to prevent re-rendering issues. Includes the `GameSceneCanvas` and `GameSceneUI` components in a proper layered structure where the Canvas renders the 3D world and UI components render as overlays.
 
   - **`ui/`**: Contains UI components for the game interface.
+    - **`GameSceneUI.tsx`**: Component that manages UI overlays for the game scene.
     - **`LoadingScreen.tsx`**: Loading screen component displayed during game loading.
+    - **`InputController.tsx`**: Manages all input handling including keyboard, mouse, and touch controls with virtual joystick support for mobile devices and action buttons for combat actions (punch, kick, melee attack, cast) and movement controls.
